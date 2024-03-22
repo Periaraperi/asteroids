@@ -112,6 +112,8 @@ void Graphics::swap_buffers()
 void Graphics::set_window_size(int w, int h)
 { 
     SDL_SetWindowSize(_window, w, h); 
+    _settings.width = w;
+    _settings.height = h;
     set_viewport();
 }
 
