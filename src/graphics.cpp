@@ -6,8 +6,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
+#include <vector>
 
 #include "opengl_errors.hpp"
+#include "shader.hpp"
 
 Graphics::Graphics(const Window_Settings& settings)
     :_window{nullptr}, _context{nullptr}, 
@@ -150,3 +152,65 @@ bool Graphics::is_fullscreen() const
 void Graphics::vsync(bool vsync)
 { SDL_GL_SetSwapInterval((vsync) ? 1 : 0); }
 
+// ======================================================================= Drawing functions =============================================================
+
+struct Triangle_Vertex {
+    glm::vec2 pos;
+    glm::vec4 color;
+};
+
+void Graphics::draw_triangle(const Shader& s, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color)
+{
+    uint32_t vao;
+    GL_CALL(glCreateVertexArrays(1, &vao));
+    GL_CALL(glBindVertexArray(vao));
+    
+    std::vector<Triangle_Vertex> vertex_data {
+        {p1, color},
+        {p2, color}, 
+        {p3, color}
+    };
+    
+    uint32_t vbo;
+    GL_CALL(glCreateBuffers(1, &vbo));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Triangle_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
+
+    GL_CALL(glEnableVertexAttribArray(0));
+    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_data), 0));
+
+    GL_CALL(glEnableVertexAttribArray(1));
+    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vertex_data), (const void*) sizeof(Triangle_Vertex::pos)));
+
+    s.bind();
+    s.set_mat4("u_mvp", _projection);
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
+}
+
+void Graphics::draw_triangle(const Shader& s, const glm::mat4& transform, glm::vec4 color)
+{
+    uint32_t vao;
+    GL_CALL(glCreateVertexArrays(1, &vao));
+    GL_CALL(glBindVertexArray(vao));
+    
+    std::vector<Triangle_Vertex> vertex_data {
+        {{-0.5f, -0.5f}, color},
+        {{ 0.5f, -0.5f}, color}, 
+        {{ 0.0f,  1.0f}, color}
+    };
+    
+    uint32_t vbo;
+    GL_CALL(glCreateBuffers(1, &vbo));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Triangle_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
+
+    GL_CALL(glEnableVertexAttribArray(0));
+    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_data), 0));
+
+    GL_CALL(glEnableVertexAttribArray(1));
+    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vertex_data), (const void*) sizeof(Triangle_Vertex::pos)));
+
+    s.bind();
+    s.set_mat4("u_mvp", _projection*transform);
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
+}

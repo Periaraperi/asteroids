@@ -4,10 +4,12 @@
 #include <string>
 
 #include <glm/mat4x4.hpp>
+#include <glm/vec2.hpp>
 
 // forward declare
 typedef struct SDL_Window SDL_Window;
 typedef void* SDL_GLContext;
+class Shader;
 
 struct Window_Settings {
     std::string title;
@@ -34,6 +36,7 @@ public:
     void clear_buffer();
     void swap_buffers();
 
+    // SDL Window releated functions
     void set_window_size(int w, int h);
     std::pair<int,int> get_window_size() const;
 
@@ -47,11 +50,17 @@ public:
 
     void vsync(bool vsync);
 
+    // drawing functions
+    void draw_triangle(const Shader& s, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color);
+    void draw_triangle(const Shader& s, const glm::mat4& transform, glm::vec4 color);
+
+    void draw_rect();
+    void draw_polygon();
+
 private:
     void cleanup();
 
     void set_viewport();
-
 private:
 
     SDL_Window* _window;

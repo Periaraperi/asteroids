@@ -13,6 +13,7 @@ set(SRCS
     ${SRC_DIR}/graphics.cpp
     ${SRC_DIR}/opengl_errors.cpp
     ${SRC_DIR}/input_manager.cpp
+    ${SRC_DIR}/shader.cpp
 
     ${EXTERNAL_INCLUDE_DIR}/glad/src/glad.c
 )
