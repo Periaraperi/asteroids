@@ -26,12 +26,6 @@ Input_Manager::~Input_Manager()
     _prev_keyboard_state = nullptr;
 }
 
-Input_Manager& Input_Manager::Instance() 
-{ 
-    static Input_Manager _instance;
-    return _instance;
-}
-
 void Input_Manager::update_prev_state()
 {
     std::copy(_keyboard_state, _keyboard_state+_key_length, _prev_keyboard_state);
@@ -39,14 +33,10 @@ void Input_Manager::update_prev_state()
 }
 
 void Input_Manager::update_mouse()
-{
-    _mouse_state = SDL_GetMouseState(&_mouse_x,&_mouse_y);
-}
+{ _mouse_state = SDL_GetMouseState(&_mouse_x,&_mouse_y); }
 
 std::pair<int, int> Input_Manager::get_mouse()
-{
-    return {_mouse_x, _mouse_y};
-}
+{ return {_mouse_x, _mouse_y}; }
 
 uint32_t Input_Manager::get_mask(Mouse_Button btn)
 {

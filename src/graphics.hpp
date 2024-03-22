@@ -9,9 +9,25 @@
 typedef struct SDL_Window SDL_Window;
 typedef void* SDL_GLContext;
 
+struct Window_Settings {
+    std::string title;
+    int width;
+    int height;
+    bool fullscreen;
+    bool resizable;
+    Window_Settings()
+        :title{"default title"}, width{800}, height{600}, fullscreen{false}, resizable{false}
+    {}
+    Window_Settings(const std::string& title_, int width_, int height_, 
+                    bool fullscreen_, bool resizable_)
+        :title{title_}, width{width_}, height{height_}, fullscreen{fullscreen_}, resizable{resizable_}
+    {}
+};
+
 class Graphics {
 public:
-    static Graphics& Instance();
+    Graphics(const Window_Settings& settings);
+    ~Graphics();
 
     // color range [0.0f - 1.0f]
     void set_clear_color(float r, float g, float b, float a);
@@ -32,27 +48,11 @@ public:
     void vsync(bool vsync);
 
 private:
-    Graphics();
-    ~Graphics();
     void cleanup();
 
     void set_viewport();
 
 private:
-    struct Window_Settings {
-        std::string title;
-        int width;
-        int height;
-        bool fullscreen;
-        bool resizable;
-        Window_Settings()
-            :title{"default title"}, width{800}, height{600}, fullscreen{false}, resizable{false}
-        {}
-        Window_Settings(const std::string& title_, int width_, int height_, 
-                        bool fullscreen_, bool resizable_)
-            :title{title_}, width{width_}, height{height_}, fullscreen{fullscreen_}, resizable{resizable_}
-        {}
-    };
 
     SDL_Window* _window;
     SDL_GLContext _context;

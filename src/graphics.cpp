@@ -9,9 +9,9 @@
 
 #include "opengl_errors.hpp"
 
-Graphics::Graphics()
+Graphics::Graphics(const Window_Settings& settings)
     :_window{nullptr}, _context{nullptr}, 
-    _settings{},
+    _settings{settings},
     _projection{glm::mat4(1.0f)}
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -80,12 +80,6 @@ void Graphics::cleanup()
     }
 
     SDL_Quit();
-}
-
-Graphics& Graphics::Instance()
-{
-    static Graphics instance;
-    return instance;
 }
 
 void Graphics::set_viewport()

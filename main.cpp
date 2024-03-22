@@ -6,15 +6,11 @@
 
 int main()
 {
-    Graphics& graphics = Graphics::Instance();
+    Graphics graphics{Window_Settings{"asteroids", 1600, 900, false, false}};
     graphics.set_clear_color(0, 0.5f, 0.5f, 1.0f);
-    graphics.set_window_size(1600, 900);
-
-    bool resizable = true;
-    graphics.set_window_resizable(resizable);
 
     // order matters, First init Graphics, then rest
-    Input_Manager& im = Input_Manager::Instance();
+    Input_Manager im{};
 
     bool running = true;
     while (running) {

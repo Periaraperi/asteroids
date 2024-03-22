@@ -13,7 +13,8 @@ enum class Mouse_Button {
 // singleton class responsible for handling key events and mouse events
 class Input_Manager {
 public:
-    static Input_Manager& Instance();
+    Input_Manager();
+    ~Input_Manager();
 
     bool key_pressed(SDL_Scancode key);
     bool key_down(SDL_Scancode key);
@@ -28,8 +29,6 @@ public:
     void update_prev_state();
     void update_mouse();
 private:
-    Input_Manager();
-    ~Input_Manager();
 
     uint32_t get_mask(Mouse_Button btn);
 private:
