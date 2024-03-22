@@ -1,13 +1,14 @@
 #include "shader.hpp"
 
-#include "opengl_errors.hpp"
-
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
 #include <sstream>
 #include <fstream>
+
+#include "opengl_errors.hpp"
+#include "peria_logger.hpp"
 
 Shader::Shader(const std::string& vertex_path, const std::string& fragment_path)
 {
@@ -17,18 +18,17 @@ Shader::Shader(const std::string& vertex_path, const std::string& fragment_path)
 	uint32_t vertex_shader = compile_shader(vertex_src, GL_VERTEX_SHADER);
 	uint32_t fragment_shader = compile_shader(fragment_src, GL_FRAGMENT_SHADER);
 
-	create_shader_program(vertex_shader, fragment_shader);
+	_init = create_shader_program(vertex_shader, fragment_shader);
 	GL_CALL(glDeleteShader(vertex_shader));
 	GL_CALL(glDeleteShader(fragment_shader));
     
-    std::cerr << "Shader ctor()\n";
+    PERIA_LOG("Shader ctor()");
 }
 
 Shader::~Shader()
 {
-	GL_CALL(glDeleteProgram(_id));
-
-    std::cerr << "Shader dtor()\n";
+    GL_CALL(glDeleteProgram(_id));
+    PERIA_LOG("Shader dtor()");
 }
 
 // TODO: add logic if invalid path or can't open file
@@ -59,13 +59,14 @@ uint32_t Shader::compile_shader(const std::string& src, uint32_t type)
 	GL_CALL(glGetShaderiv(shader,GL_COMPILE_STATUS,&success));
 	if(!success) {
 		GL_CALL(glGetShaderInfoLog(shader,512,nullptr,log));
-		std::cerr << "Couldn't compile shader\n" << log << '\n';
+		PERIA_LOG("Couldn't compile shader\n", log);
 	}
 
 	return shader;
 }
 
-void Shader::create_shader_program(uint32_t vertex_shader, uint32_t fragment_shader)
+[[nodiscard]]
+bool Shader::create_shader_program(uint32_t vertex_shader, uint32_t fragment_shader)
 {
 	_id = glCreateProgram();
 	GL_CALL(glAttachShader(_id,vertex_shader));
@@ -78,8 +79,10 @@ void Shader::create_shader_program(uint32_t vertex_shader, uint32_t fragment_sha
 	GL_CALL(glGetProgramiv(_id,GL_LINK_STATUS,&success));
 	if(!success) {
 		GL_CALL(glGetProgramInfoLog(_id,512,nullptr,log));
-		std::cerr << "Couldn't link shader program\n" << log << '\n';
+        PERIA_LOG("Couldn't link shader program\n", log);
+        return false;
 	}
+    return true;
 }
 
 void Shader::bind() const
@@ -87,6 +90,10 @@ void Shader::bind() const
 
 void Shader::unbind() const
 { GL_CALL(glUseProgram(0)); }
+
+[[nodiscard]]
+bool Shader::is_initialized() const
+{ return _init; }
 
 void Shader::set_int(const std::string& u_name, int val) const
 { GL_CALL(glUniform1i(glGetUniformLocation(_id,u_name.c_str()),val)); }

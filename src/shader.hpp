@@ -10,12 +10,13 @@
 class Shader {
 public:
 	Shader(const std::string& vertex_path, const std::string& fragment_path);
-	Shader(Shader&&) = default;
-	Shader& operator=(Shader&&) = default;
 	~Shader();
 
 	void bind() const;
 	void unbind() const;
+
+    [[nodiscard]]
+    bool is_initialized() const;
 
     void set_int(const std::string& u_name, int val) const;
 	void set_float(const std::string& u_name, float val) const;
@@ -26,12 +27,19 @@ public:
     void set_array(const std::string& u_name, int count, int* arr) const;
 
 private:
-	uint32_t _id;
 	std::string parse_shader(const std::string& path);
 	uint32_t compile_shader(const std::string& src, uint32_t type);
-	void create_shader_program(uint32_t vertex_shader, uint32_t fragment_shader);
 
-public: // disable copy operations
+    [[nodiscard]]
+	bool create_shader_program(uint32_t vertex_shader, uint32_t fragment_shader);
+
+private:
+	uint32_t _id;
+    bool _init;
+
+public: // disable copy and move 
 	Shader(const Shader&) = delete;
 	Shader& operator=(const Shader&) = delete;
+	Shader(Shader&&) = delete;
+	Shader& operator=(Shader&&) = delete;
 };

@@ -2,7 +2,8 @@
 
 #include <SDL2/SDL.h>
 #include <algorithm> // for std::copy
-#include <iostream>
+
+#include "peria_logger.hpp"
 
 Input_Manager::Input_Manager()
     :_keyboard_state{nullptr}, 
@@ -16,12 +17,12 @@ Input_Manager::Input_Manager()
     std::copy(_keyboard_state, _keyboard_state+_key_length, _prev_keyboard_state);
     _mouse_state = SDL_GetMouseState(&_mouse_x, &_mouse_y);
     
-    std::cerr << "Input Manager Init\n";
+    PERIA_LOG("Input Manager ctor()");
 }
 
 Input_Manager::~Input_Manager()
 {
-    std::cerr << "Input Manager Dtor()\n";
+    PERIA_LOG("Input Manager dtor()");
     delete[] _prev_keyboard_state; 
     _prev_keyboard_state = nullptr;
 }

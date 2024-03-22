@@ -1,12 +1,10 @@
 #include <SDL2/SDL.h>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <iostream>
 #include <cmath>
 
 #include "graphics.hpp"
 #include "input_manager.hpp"
-#include "shader.hpp"
 
 struct Transform {
     static glm::mat4 model(glm::vec2 scale, glm::vec2 pos, float angle = 0.0f /*in degrees*/)
@@ -43,8 +41,6 @@ int main()
     // order matters, First init Graphics, then rest
     Input_Manager im{};
 
-    Shader tri_shader{"res/shaders/tri_vert.glsl", "res/shaders/tri_frag.glsl"};
-
     glm::vec2 ship_pos {800.0f, 450.0f};
     float ship_velocity = 350.0f;
 
@@ -69,17 +65,15 @@ int main()
             } 
             else if (ev.type == SDL_WINDOWEVENT) { 
                 if (ev.window.event == SDL_WINDOWEVENT_RESIZED) {
-                    std::cerr << "Window Resize Event\n";
-                    std::cerr << "New size: " << ev.window.data1 << " " << ev.window.data2 << '\n';
                     graphics.set_window_size(ev.window.data1, ev.window.data2);
                 }
             }
         }
 
-        if (im.mouse_down(Mouse_Button::LEFT)) {
+        if (im.key_down(SDL_SCANCODE_A)) {
             ship_angle += dt*150;
         }
-        if (im.mouse_down(Mouse_Button::RIGHT)) {
+        if (im.key_down(SDL_SCANCODE_D)) {
             ship_angle -= dt*150;
         }
 
@@ -97,7 +91,7 @@ int main()
 
         graphics.clear_buffer();
 
-        graphics.draw_triangle(tri_shader, ship_transform, {1.0f, 0.0f, 0.0f, 1.0f});
+        graphics.draw_triangle(ship_transform, {1.0f, 0.0f, 0.0f, 1.0f});
 
         graphics.swap_buffers();
 
@@ -106,12 +100,3 @@ int main()
 
     return 0;
 }
-
-/*
-        if (im.key_pressed(SDL_SCANCODE_E)) {
-            graphics.vsync(false);
-        }
-        if (im.key_pressed(SDL_SCANCODE_Q)) {
-            graphics.vsync(true);
-        }
- */

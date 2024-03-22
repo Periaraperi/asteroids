@@ -2,6 +2,7 @@
 
 #include <utility>
 #include <string>
+#include <memory>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
@@ -51,11 +52,7 @@ public:
     void vsync(bool vsync);
 
     // drawing functions
-    void draw_triangle(const Shader& s, glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color);
-    void draw_triangle(const Shader& s, const glm::mat4& transform, glm::vec4 color);
-
-    void draw_rect();
-    void draw_polygon();
+    void draw_triangle(const glm::mat4& transform, glm::vec4 color);
 
 private:
     void cleanup();
@@ -71,6 +68,9 @@ private:
     
     // orthographic projection
     glm::mat4 _projection;
+
+    // shaders
+    std::unique_ptr<Shader> _triangle_shader;
 
 public:
     Graphics(const Graphics&) = delete;
