@@ -3,6 +3,7 @@
 #include <utility>
 #include <string>
 #include <memory>
+#include <vector>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
@@ -50,16 +51,18 @@ public:
     bool is_fullscreen() const;
 
     void vsync(bool vsync);
+    void wireframe(bool wireframe);
 
     // drawing functions
     void draw_triangle(const glm::mat4& transform, glm::vec4 color);
+    void draw_polygon(const std::vector<glm::vec2>& poly_points, glm::vec4 color);
+    void draw_circle(glm::vec2 center, float radius, glm::vec4 color);
 
 private:
     void cleanup();
 
     void set_viewport();
 private:
-
     SDL_Window* _window;
     SDL_GLContext _context;
     Window_Settings _settings;
@@ -71,6 +74,7 @@ private:
 
     // shaders
     std::unique_ptr<Shader> _triangle_shader;
+    std::unique_ptr<Shader> _circle_shader;
 
 public:
     Graphics(const Graphics&) = delete;

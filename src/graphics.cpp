@@ -6,6 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
+#include <array>
 
 #include "opengl_errors.hpp"
 #include "peria_logger.hpp"
@@ -61,6 +62,7 @@ Graphics::Graphics(const Window_Settings& settings)
     vsync(true);
 
     _triangle_shader = std::make_unique<Shader>("res/shaders/tri_vert.glsl", "res/shaders/tri_frag.glsl");
+    _circle_shader = std::make_unique<Shader>("res/shaders/circle_vert.glsl", "res/shaders/circle_frag.glsl");
     PERIA_LOG("Graphics ctor()");
 }
 
@@ -74,6 +76,7 @@ void Graphics::cleanup()
 {
     // we want custom order for deletion, hence .reset()
     _triangle_shader.reset();
+    _circle_shader.reset();
 
     SDL_GL_DeleteContext(_context);
 
@@ -156,8 +159,22 @@ bool Graphics::is_fullscreen() const
 void Graphics::vsync(bool vsync)
 { SDL_GL_SetSwapInterval((vsync) ? 1 : 0); }
 
-// ======================================================================= Drawing functions =============================================================
+void Graphics::wireframe(bool wireframe)
+{ 
+    if (wireframe) {
+        GL_CALL(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)); 
+    }
+    else {
+        GL_CALL(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)); 
+    }
+}
 
+// ======================================================================= Drawing functions =============================================================
+// TODO optimize drawing renderer. Currently we create and destroy vao/vbo each frame and call drawCall on every object
+
+// I use this only for triangle
+// probably will rewrite renderer for
+// the N-th time xD
 struct Triangle_Vertex {
     glm::vec2 pos;
     glm::vec4 color;
@@ -181,12 +198,106 @@ void Graphics::draw_triangle(const glm::mat4& transform, glm::vec4 color)
     GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Triangle_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
 
     GL_CALL(glEnableVertexAttribArray(0));
-    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(vertex_data), 0));
+    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Triangle_Vertex), 0));
 
     GL_CALL(glEnableVertexAttribArray(1));
-    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vertex_data), (const void*) sizeof(Triangle_Vertex::pos)));
+    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Triangle_Vertex), (const void*) sizeof(Triangle_Vertex::pos)));
 
     _triangle_shader->bind();
     _triangle_shader->set_mat4("u_mvp", _projection*transform);
     GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
+}
+
+struct Polygon_Vertex {
+    glm::vec2 pos;
+    glm::vec4 color;
+};
+
+void Graphics::draw_polygon(const std::vector<glm::vec2>& points, glm::vec4 color)
+{
+    PERIA_ASSERT(points.size() >= 3, "draw_polygon() needs at least 3 points");
+    if (points.size() < 3) return;
+
+    uint32_t vao;
+    GL_CALL(glCreateVertexArrays(1, &vao));
+    GL_CALL(glBindVertexArray(vao));
+
+    std::vector<Polygon_Vertex> vertex_data(points.size());
+    for (std::size_t i{}; i<vertex_data.size(); ++i) {
+        vertex_data[i].pos = points[i];
+        vertex_data[i].color = color;
+    }
+
+    std::vector<uint32_t> index_data;
+    index_data.reserve((points.size()-2)*3);
+
+    for (std::size_t i=1; i<=points.size()-2; ++i) {
+        index_data.push_back(0); // 0-th point is the start
+        index_data.push_back(i);
+        index_data.push_back(i+1);
+    }
+    
+    uint32_t vbo;
+    GL_CALL(glCreateBuffers(1, &vbo));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Polygon_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
+
+    uint32_t ibo;
+    GL_CALL(glCreateBuffers(1, &ibo));
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)*index_data.size(), index_data.data(), GL_STATIC_DRAW));
+
+
+    GL_CALL(glEnableVertexAttribArray(0));
+    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), 0));
+
+    GL_CALL(glEnableVertexAttribArray(1));
+    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), (const void*) sizeof(Polygon_Vertex::pos)));
+
+    // current implementation of triangle shader works for polygons.
+    // we just create polygon with triangles, using indexed draw call
+    _triangle_shader->bind();
+    // since we pass points in world space. No need for model matrix
+    _triangle_shader->set_mat4("u_mvp", _projection);
+
+    GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0)); // indexed draw with triangles
+}
+
+void Graphics::draw_circle(glm::vec2 center, float radius, glm::vec4 color)
+{
+    uint32_t vao;
+    GL_CALL(glCreateVertexArrays(1, &vao));
+    GL_CALL(glBindVertexArray(vao));
+
+    // use poly vertex for quad
+    std::vector<Polygon_Vertex> vertex_data {
+        {{center.x-radius, center.y-radius}, color},
+        {{center.x-radius, center.y+radius}, color},
+        {{center.x+radius, center.y+radius}, color},
+        {{center.x+radius, center.y-radius}, color},
+    };
+
+    std::array<uint32_t, 6> index_data {0,1,2, 0,2,3};
+
+    uint32_t vbo;
+    GL_CALL(glCreateBuffers(1, &vbo));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Polygon_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
+
+    uint32_t ibo;
+    GL_CALL(glCreateBuffers(1, &ibo));
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)*index_data.size(), index_data.data(), GL_STATIC_DRAW));
+
+    GL_CALL(glEnableVertexAttribArray(0));
+    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), 0));
+
+    GL_CALL(glEnableVertexAttribArray(1));
+    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), (const void*) sizeof(Polygon_Vertex::pos)));
+    
+    _circle_shader->bind();
+    _circle_shader->set_mat4("u_mvp", _projection);
+    _circle_shader->set_vec2("u_center", center);
+    _circle_shader->set_float("u_radius", radius);
+    GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0));
 }
