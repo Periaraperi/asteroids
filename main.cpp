@@ -5,6 +5,7 @@
 
 #include "graphics.hpp"
 #include "input_manager.hpp"
+#include "physics.hpp"
 
 struct Transform {
     // returns model matrix constructed from scale, pos, and optional angle
@@ -67,6 +68,9 @@ int main()
     bool toggle = true;
     bool wire = false;
 
+    AABB_Collider rect1{{400.0f, 300.0f}, {100.0f, 70.0f}};
+    AABB_Collider rect2{{1400.0f, 300.0f}, {120.0f, 170.0f}};
+
     uint32_t prev = SDL_GetTicks();
 
     bool running = true;
@@ -119,6 +123,8 @@ int main()
                 ship_pos.y += std::sin(Transform::to_radians(ship_angle+90.0f))*ship_velocity*dt;
             }
         }
+        rect2.pos.x = mx;
+        rect2.pos.y = my;
 
         im.update_prev_state();
 
@@ -132,8 +138,16 @@ int main()
         else 
             graphics.draw_polygon(points, {0.1f, 1.0f, 0.2f, 1.0f});
 
-        graphics.draw_circle({mx, my}, 50.0f, {1.0f, 0.5f, 0.5f, 1.0f});
+        //graphics.draw_circle({mx, my}, 50.0f, {1.0f, 0.5f, 0.5f, 1.0f});
         graphics.draw_polygon({{100.0f, 100.0f}, {100.0f, 150.0f}, {150.0f, 150.0f}, {150.0f, 100.0f}}, {0.0f, 1.0f, 0.5f, 1.0f});
+        if (aabb(rect1, rect2)) {
+            graphics.draw_rect(rect1.pos, rect1.size, {1.0f, 1.0f, 1.0f, 1.0f});
+            graphics.draw_rect(rect2.pos, rect2.size, {0.0f, 0.0f, 0.0f, 1.0f});
+        }
+        else {
+            graphics.draw_rect(rect1.pos, rect1.size, {1.0f, 1.0f, 0.0f, 1.0f});
+            graphics.draw_rect(rect2.pos, rect2.size, {0.0f, 1.0f, 1.0f, 1.0f});
+        }
         graphics.swap_buffers();
 
         SDL_Delay(1);

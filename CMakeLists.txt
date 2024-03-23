@@ -14,6 +14,7 @@ set(SRCS
     ${SRC_DIR}/opengl_errors.cpp
     ${SRC_DIR}/input_manager.cpp
     ${SRC_DIR}/shader.cpp
+    ${SRC_DIR}/physics.cpp
 
     ${EXTERNAL_INCLUDE_DIR}/glad/src/glad.c
 )
