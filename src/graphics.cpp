@@ -180,6 +180,11 @@ struct Triangle_Vertex {
     glm::vec4 color;
 };
 
+struct Polygon_Vertex {
+    glm::vec2 pos;
+    glm::vec4 color;
+};
+
 void Graphics::draw_triangle(const glm::mat4& transform, glm::vec4 color)
 {
     uint32_t vao;
@@ -208,10 +213,43 @@ void Graphics::draw_triangle(const glm::mat4& transform, glm::vec4 color)
     GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
 }
 
-struct Polygon_Vertex {
-    glm::vec2 pos;
-    glm::vec4 color;
-};
+void Graphics::draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color)
+{
+    
+    uint32_t vao;
+    GL_CALL(glCreateVertexArrays(1, &vao));
+    GL_CALL(glBindVertexArray(vao));
+
+    // use poly vertex for quad
+    std::vector<Polygon_Vertex> vertex_data {
+        {{pos.x,        pos.y-size.y}, color},
+        {{pos.x,        pos.y       }, color},
+        {{pos.x+size.x, pos.y       }, color},
+        {{pos.x+size.x, pos.y-size.y}, color}
+    };
+
+    std::array<uint32_t, 6> index_data {0,1,2, 0,2,3};
+
+    uint32_t vbo;
+    GL_CALL(glCreateBuffers(1, &vbo));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Polygon_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
+
+    uint32_t ibo;
+    GL_CALL(glCreateBuffers(1, &ibo));
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)*index_data.size(), index_data.data(), GL_STATIC_DRAW));
+
+    GL_CALL(glEnableVertexAttribArray(0));
+    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), 0));
+
+    GL_CALL(glEnableVertexAttribArray(1));
+    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), (const void*) sizeof(Polygon_Vertex::pos)));
+    
+    _triangle_shader->bind();
+    _triangle_shader->set_mat4("u_mvp", _projection);
+    GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0));
+}
 
 void Graphics::draw_polygon(const std::vector<glm::vec2>& points, glm::vec4 color)
 {

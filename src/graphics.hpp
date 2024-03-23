@@ -55,6 +55,7 @@ public:
 
     // drawing functions
     void draw_triangle(const glm::mat4& transform, glm::vec4 color);
+    void draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color);
     void draw_polygon(const std::vector<glm::vec2>& poly_points, glm::vec4 color);
     void draw_circle(glm::vec2 center, float radius, glm::vec4 color);
 
