@@ -58,6 +58,7 @@ public:
     void draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color);
     void draw_polygon(const std::vector<glm::vec2>& poly_points, glm::vec4 color);
     void draw_circle(glm::vec2 center, float radius, glm::vec4 color);
+    void draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color);
 
 private:
     void cleanup();
@@ -76,6 +77,7 @@ private:
     // shaders
     std::unique_ptr<Shader> _triangle_shader;
     std::unique_ptr<Shader> _circle_shader;
+    std::unique_ptr<Shader> _line_shader;
 
 public:
     Graphics(const Graphics&) = delete;

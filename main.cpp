@@ -2,6 +2,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <cmath>
+#include <iostream>
+#include <array>
 
 #include "graphics.hpp"
 #include "input_manager.hpp"
@@ -39,11 +41,25 @@ private:
     constexpr static float FULL_ROT_ANGLE = 360.0f;
 };
 
+constexpr std::array<glm::vec4, 4> circle_colors {{
+    {0.0f, 0.0f, 1.0f, 1.0f},
+    {1.0f, 1.0f, 0.0f, 1.0f},
+    {1.0f, 0.0f, 1.0f, 1.0f},
+    {0.0f, 1.0f, 1.0f, 1.0f},
+}};
+
+constexpr std::array<const char*, 4> color_names {
+    "blue",
+    "yellow",
+    "purple",
+    "cyan"
+};
+
 int main()
 {
     Graphics graphics{Window_Settings{"asteroids", 1600, 900, false, false}};
     graphics.set_clear_color(0, 0.5f, 0.5f, 1.0f);
-    graphics.vsync(false);
+    graphics.vsync(true);
 
     // order matters, First init Graphics, then rest
     Input_Manager im{};
@@ -63,13 +79,61 @@ int main()
         {800.0f, 100.0f}
     };
 
+    // convex polys
+    // poly1 is fixed in the world
+    std::vector<glm::vec2> poly1 {
+        {100.0f, 100.0f},
+        {150.0f, 200.0f},
+        {300.0f, 170.0f},
+        {500.0f, 50.0f}
+    };
+    for (auto& p:poly1) p += glm::vec2{400.0f, 400.0f};
+    // poly2 will follow mouse.
+    // add mouse offset to below points
+    std::vector<glm::vec2> poly2_model {
+        {0.0f, 0.0f}, // mouse must be here
+        {150.0f, 160.0f},
+        {300.0f, -100.0f},
+        {140.0f, -140.0f}
+    };
+
+    // add other polys for testing
+    std::vector<glm::vec2> rect1 {
+        {300.0f, 700.0f},
+        {500.0f, 700.0f},
+        {500.0f, 400.0f},
+        {300.0f, 400.0f},
+    };
+    glm::vec2 cc = {400.0f, 550.0f};
+
+    for (auto& p:rect1) {
+        p -= cc;
+    }
+    
+    // rotate by 45 degrees clockwise around center of rect
+    auto aa = Transform::to_radians(45.0f);
+    for (auto& p:rect1) {
+        p.x = std::cos(aa)*p.x - std::sin(aa)*p.y;
+        p.y = std::sin(aa)*p.x + std::cos(aa)*p.y;
+    }
+
+    for (auto& p:rect1) {
+        p += cc;
+    }
+
+    std::vector<glm::vec2> rect2_model {
+        {0.0f, 0.0f},
+        {100.0f, 0.0f},
+        {100.0f, 100.0f},
+        {0.0f, 100.0f},
+    };
+
     std::vector<glm::vec2> quad {{100.0f, 100.0f}, {100.0f, 150.0f}, {150.0f, 150.0f}, {150.0f, 100.0f}};
 
     bool toggle = true;
     bool wire = false;
-
-    AABB_Collider rect1{{400.0f, 300.0f}, {100.0f, 70.0f}};
-    AABB_Collider rect2{{1400.0f, 300.0f}, {120.0f, 170.0f}};
+    bool draw_points = true;
+    bool draw_normals = false;
 
     uint32_t prev = SDL_GetTicks();
 
@@ -99,6 +163,12 @@ int main()
         my = graphics.get_window_size().second - my;
         graphics.set_window_title("asteroids: Mouse: x: "+std::to_string(mx)+" y: "+std::to_string(my));
 
+        if (im.key_pressed(SDL_SCANCODE_Y)) {
+            draw_normals = !draw_normals;
+        }
+        if (im.key_pressed(SDL_SCANCODE_U)) {
+            draw_points = !draw_points;
+        }
         if (im.key_pressed(SDL_SCANCODE_P)) {
             toggle = !toggle;
         }
@@ -123,8 +193,40 @@ int main()
                 ship_pos.y += std::sin(Transform::to_radians(ship_angle+90.0f))*ship_velocity*dt;
             }
         }
-        rect2.pos.x = mx;
-        rect2.pos.y = my;
+        
+        glm::vec2 mouse_vec{mx, my};
+
+        std::vector<glm::vec2> poly2(4);
+        for (std::size_t i{}; i<poly2.size(); ++i) {
+            poly2[i] = poly2_model[i] + mouse_vec;
+        }
+
+        std::vector<glm::vec2> rect2(4);
+        for (std::size_t i{}; i<rect2.size(); ++i) {
+            rect2[i] = rect2_model[i] + mouse_vec;
+        }
+
+        // info on last sat test
+        if (im.key_pressed(SDL_SCANCODE_V)) {
+            std::cerr << "================================================\n";
+            for (std::size_t i{}; i<normal_lines.size(); ++i) {
+                std::cerr << "-------------------------------------------------------------------\n";
+                std::cerr << "LINE COLOR: " << color_names[i%color_names.size()] << '\n';
+                std::cerr << normal_lines[i].p1.x << " " << normal_lines[i].p1.y << '\n';
+                std::cerr << normal_lines[i].p2.x << " " << normal_lines[i].p2.y << '\n';
+                std::cerr << "PROJECTED INTERVALS\n";
+                std::cerr << normal_lines[i].mina << " " << normal_lines[i].maxa << '\n';
+                std::cerr << normal_lines[i].minb << " " << normal_lines[i].maxb << '\n';
+                std::cerr << "is maxa < minb? ";
+                if (normal_lines[i].maxa < normal_lines[i].minb) std::cerr << "YES\n";
+                else                                             std::cerr << "NO\n";
+                std::cerr << "is maxb < mina? ";
+                if (normal_lines[i].maxb < normal_lines[i].mina) std::cerr << "YES\n";
+                else                                             std::cerr << "NO\n";
+                std::cerr << "-------------------------------------------------------------------\n";
+            }
+            std::cerr << "================================================\n";
+        }
 
         im.update_prev_state();
 
@@ -139,15 +241,58 @@ int main()
             graphics.draw_polygon(points, {0.1f, 1.0f, 0.2f, 1.0f});
 
         //graphics.draw_circle({mx, my}, 50.0f, {1.0f, 0.5f, 0.5f, 1.0f});
-        graphics.draw_polygon({{100.0f, 100.0f}, {100.0f, 150.0f}, {150.0f, 150.0f}, {150.0f, 100.0f}}, {0.0f, 1.0f, 0.5f, 1.0f});
-        if (aabb(rect1, rect2)) {
-            graphics.draw_rect(rect1.pos, rect1.size, {1.0f, 1.0f, 1.0f, 1.0f});
-            graphics.draw_rect(rect2.pos, rect2.size, {0.0f, 0.0f, 0.0f, 1.0f});
+        //graphics.draw_polygon({{100.0f, 100.0f}, {100.0f, 150.0f}, {150.0f, 150.0f}, {150.0f, 100.0f}}, {0.0f, 1.0f, 0.5f, 1.0f});
+        //if (aabb(rect1, rect2)) {
+        //    graphics.draw_rect(rect1.pos, rect1.size, {1.0f, 1.0f, 1.0f, 1.0f});
+        //    graphics.draw_rect(rect2.pos, rect2.size, {0.0f, 0.0f, 0.0f, 1.0f});
+        //}
+        //else {
+        //    graphics.draw_rect(rect1.pos, rect1.size, {1.0f, 1.0f, 0.0f, 1.0f});
+        //    graphics.draw_rect(rect2.pos, rect2.size, {0.0f, 1.0f, 1.0f, 1.0f});
+        //}
+
+        if (!sat(poly1, poly2)) {
+            graphics.draw_polygon(poly1, {0.60f, 0.20f, 0.0f, 1.0f});
+            graphics.draw_polygon(poly2, {0.10f, 0.90f, 0.15f, 1.0f});
         }
         else {
-            graphics.draw_rect(rect1.pos, rect1.size, {1.0f, 1.0f, 0.0f, 1.0f});
-            graphics.draw_rect(rect2.pos, rect2.size, {0.0f, 1.0f, 1.0f, 1.0f});
+            graphics.draw_polygon(poly1, {1.0f, 1.0f, 1.0f, 1.0f});
+            graphics.draw_polygon(poly2, {0.0f, 0.0f, 0.0f, 1.0f});
         }
+        
+        //if (!sat(rect1, rect2)) {
+        //    graphics.draw_polygon(rect1, {0.60f, 0.20f, 0.0f, 1.0f});
+        //    graphics.draw_polygon(rect2, {0.10f, 0.90f, 0.15f, 1.0f});
+        //}
+        //else {
+        //    graphics.draw_polygon(rect1, {1.0f, 1.0f, 1.0f, 1.0f});
+        //    graphics.draw_polygon(rect2, {0.0f, 0.0f, 0.0f, 1.0f});
+        //}
+
+        // debug SAT
+        if (draw_points) {
+            for (std::size_t i{}; i<poly1.size(); ++i) {
+                graphics.draw_circle(poly1[i], 7.0f, circle_colors[i]);
+            }
+            for (std::size_t i{}; i<poly2.size(); ++i) {
+                graphics.draw_circle(poly2[i], 7.0f, circle_colors[i]);
+            }
+        }
+        //if (draw_points) {
+        //    for (std::size_t i{}; i<rect1.size(); ++i) {
+        //        graphics.draw_circle(rect1[i], 7.0f, circle_colors[i]);
+        //    }
+        //    for (std::size_t i{}; i<rect2.size(); ++i) {
+        //        graphics.draw_circle(rect2[i], 7.0f, circle_colors[i]);
+        //    }
+        //}
+
+        if (draw_normals) {
+            for (std::size_t i{}; i<normal_lines.size(); ++i) {
+                graphics.draw_line(normal_lines[i].p1, normal_lines[i].p2, circle_colors[i%circle_colors.size()]);
+            }
+        }
+
         graphics.swap_buffers();
 
         SDL_Delay(1);

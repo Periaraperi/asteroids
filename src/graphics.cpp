@@ -63,6 +63,8 @@ Graphics::Graphics(const Window_Settings& settings)
 
     _triangle_shader = std::make_unique<Shader>("res/shaders/tri_vert.glsl", "res/shaders/tri_frag.glsl");
     _circle_shader = std::make_unique<Shader>("res/shaders/circle_vert.glsl", "res/shaders/circle_frag.glsl");
+    _line_shader = std::make_unique<Shader>("res/shaders/line_vert.glsl", "res/shaders/line_frag.glsl");
+
     PERIA_LOG("Graphics ctor()");
 }
 
@@ -77,6 +79,7 @@ void Graphics::cleanup()
     // we want custom order for deletion, hence .reset()
     _triangle_shader.reset();
     _circle_shader.reset();
+    _line_shader.reset();
 
     SDL_GL_DeleteContext(_context);
 
@@ -339,3 +342,29 @@ void Graphics::draw_circle(glm::vec2 center, float radius, glm::vec4 color)
     _circle_shader->set_float("u_radius", radius);
     GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0));
 }
+
+void Graphics::draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color)
+{
+    uint32_t vao;
+    GL_CALL(glCreateVertexArrays(1, &vao));
+    GL_CALL(glBindVertexArray(vao));
+
+    std::vector<float> vertex_data {
+        p1.x, p1.y,
+        p2.x, p2.y
+    };
+
+    uint32_t vbo;
+    GL_CALL(glCreateBuffers(1, &vbo));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(float)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
+    
+    GL_CALL(glEnableVertexAttribArray(0));
+    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float)*2, 0));
+
+    _line_shader->bind();
+    _line_shader->set_mat4("u_mvp", _projection);
+    _line_shader->set_vec4("u_color", color);
+    GL_CALL(glDrawArrays(GL_LINES, 0, 2));
+}
+
