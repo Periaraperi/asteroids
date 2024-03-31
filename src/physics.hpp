@@ -9,6 +9,7 @@ struct AABB_Collider {
     glm::vec2 size;
 };
 
+// debug lines for normal vectors
 struct Line {
     glm::vec2 p1;
     glm::vec2 p2;
@@ -16,6 +17,22 @@ struct Line {
     // projected interval min max
     float mina, maxa;
     float minb, maxb;
+
+    glm::vec4 color;
+
+    friend std::ostream& operator<<(std::ostream& os, const Line& l)
+    {
+        os << "P1: (" << l.p1.x << ", " << l.p1.y << ") ";
+        os << "P2: (" << l.p2.x << ", " << l.p2.y << ") ";
+
+        os << "\nProjected Interval_A: ";
+        os << "(" << l.mina << ", " << l.maxa << ")";
+        os << "\nProjected Interval_B: ";
+        os << "(" << l.minb << ", " << l.maxb << ")";
+
+        return os;
+    }
+
 };
 
 struct Polygon {
@@ -49,6 +66,13 @@ struct Polygon {
         }
     }
 
+    void move(glm::vec2 dir)
+    {
+        for (auto& p:points) {
+            p += dir;
+        }
+    }
+
     // NOTE: polygon is assumed to be convex.
     glm::vec2 visual_center() const noexcept
     {
@@ -63,14 +87,14 @@ struct Polygon {
     }
 };
 
+// for debug
 inline
-std::vector<Line> normal_lines;
+std::vector<Line> normal_lines_a;
+inline
+std::vector<Line> normal_lines_b;
 
 // check if two axis aligned rectangles collide
 bool aabb(const AABB_Collider& a, const AABB_Collider& b);
 
 // check if two convex polygons intersect
 bool sat(const std::vector<glm::vec2>& a, const std::vector<glm::vec2>& b);
-
-// check if two convex polygons intersect
-bool sat(const Polygon& a, const Polygon& b);

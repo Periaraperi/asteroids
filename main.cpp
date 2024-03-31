@@ -1,10 +1,6 @@
 #include <SDL2/SDL.h>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <cmath>
-#include <iostream>
-#include <array>
-
 #include "graphics.hpp"
 #include "input_manager.hpp"
 #include "physics.hpp"
@@ -54,25 +50,11 @@ private:
     constexpr static float FULL_ROT_ANGLE = 360.0f;
 };
 
-//constexpr std::array<glm::vec4, 4> circle_colors {{
-//    {0.0f, 0.0f, 1.0f, 1.0f},
-//    {1.0f, 1.0f, 0.0f, 1.0f},
-//    {1.0f, 0.0f, 1.0f, 1.0f},
-//    {0.0f, 1.0f, 1.0f, 1.0f},
-//}};
-//
-//constexpr std::array<const char*, 4> color_names {
-//    "blue",
-//    "yellow",
-//    "purple",
-//    "cyan"
-//};
-
 int main()
 {
     Graphics graphics{Window_Settings{"asteroids", 1600, 900, false, false}};
     graphics.set_clear_color(0, 0.5f, 0.5f, 1.0f);
-    graphics.vsync(true);
+    graphics.vsync(false);
 
     // order matters, First init Graphics, then rest
     Input_Manager im{};
@@ -97,10 +79,20 @@ int main()
         {500.0f, 400.0f}
     }};
 
+    Polygon static_poly {{
+        {1200.0f, 500.0f},
+        {1300.0f, 600.0f},
+        {1400.0f, 400.0f}
+    }};
+
     std::vector<Polygon> polys {p_triangle, p_quad, p_p1};
     std::size_t index = 0;
+    
+    float velocity = 250.0f;
 
     bool wire = false;
+    bool draw_points = true;
+    bool draw_normals = false;
 
     uint32_t prev = SDL_GetTicks();
 
@@ -109,6 +101,8 @@ int main()
         uint32_t now = SDL_GetTicks();
         float dt = (now - prev) / 1000.0f; // delta time in seconds
         prev = now;
+
+        bool info = false;
 
         im.update_mouse();
 
@@ -132,9 +126,18 @@ int main()
 
         glm::vec2 mouse_vec{mx, my};
 
+        if (im.key_pressed(SDL_SCANCODE_P)) {
+            draw_points = !draw_points;
+        }
+        if (im.key_pressed(SDL_SCANCODE_N)) {
+            draw_normals = !draw_normals;
+        }
         if (im.key_pressed(SDL_SCANCODE_O)) {
             wire = !wire;
             graphics.wireframe(wire);
+        }
+        if (im.key_pressed(SDL_SCANCODE_I)) {
+            info = true;
         }
         
         if (im.mouse_pressed(Mouse_Button::LEFT)) {
@@ -142,45 +145,95 @@ int main()
         }
         auto& poly = polys[index];
 
-        if (im.key_down(SDL_SCANCODE_A)) {
+        // ROTATION
+        if (im.key_down(SDL_SCANCODE_Q)) {
             poly.rotate(Transform::to_radians(dt*150.0f));
         }
-        if (im.key_down(SDL_SCANCODE_D)) {
+        if (im.key_down(SDL_SCANCODE_E)) {
             poly.rotate(Transform::to_radians(-dt*150.0f));
         }
 
-        // info on last sat test
-        //if (im.key_pressed(SDL_SCANCODE_V)) {
-        //    std::cerr << "================================================\n";
-        //    for (std::size_t i{}; i<normal_lines.size(); ++i) {
-        //        std::cerr << "-------------------------------------------------------------------\n";
-        //        std::cerr << "LINE COLOR: " << color_names[i%color_names.size()] << '\n';
-        //        std::cerr << normal_lines[i].p1.x << " " << normal_lines[i].p1.y << '\n';
-        //        std::cerr << normal_lines[i].p2.x << " " << normal_lines[i].p2.y << '\n';
-        //        std::cerr << "PROJECTED INTERVALS\n";
-        //        std::cerr << normal_lines[i].mina << " " << normal_lines[i].maxa << '\n';
-        //        std::cerr << normal_lines[i].minb << " " << normal_lines[i].maxb << '\n';
-        //        std::cerr << "is maxa < minb? ";
-        //        if (normal_lines[i].maxa < normal_lines[i].minb) std::cerr << "YES\n";
-        //        else                                             std::cerr << "NO\n";
-        //        std::cerr << "is maxb < mina? ";
-        //        if (normal_lines[i].maxb < normal_lines[i].mina) std::cerr << "YES\n";
-        //        else                                             std::cerr << "NO\n";
-        //        std::cerr << "-------------------------------------------------------------------\n";
-        //    }
-        //    std::cerr << "================================================\n";
-        //}
+        // MOVEMENT, doing extra work. But ok for now. We are debugging
+        glm::vec2 dir{0.0f, 0.0f};
+        if (im.key_down(SDL_SCANCODE_W)) {
+            dir.y = 1.0f;
+        }
+        if (im.key_down(SDL_SCANCODE_A)) { 
+            dir.x = -1.0f;
+        }
+        if (im.key_down(SDL_SCANCODE_S)) { 
+            dir.y = -1.0f;
+        }
+        if (im.key_down(SDL_SCANCODE_D)) { 
+            dir.x = 1.0f;
+        }
+        dir.x *= dt*velocity;
+        dir.y *= dt*velocity;
+
+        poly.move(dir);
 
         im.update_prev_state();
 
         graphics.clear_buffer();
         // DRAW CALLS HERE!
 
-        graphics.draw_polygon(poly.points, Color::RED);
-        graphics.draw_circle(poly.visual_center(), 5.0f, Color::GREEN);
-        for (const auto& p:poly.points) {
-            graphics.draw_circle(p, 5.0f, Color::BLUE);
+        if (!sat(poly.points, static_poly.points)) {
+            graphics.draw_polygon(static_poly.points, Color::MAGENTA);
+            graphics.draw_circle(static_poly.visual_center(), 5.0f, Color::GREEN);
+
+            graphics.draw_polygon(poly.points, Color::RED);
+            graphics.draw_circle(poly.visual_center(), 5.0f, Color::GREEN);
         }
+        else {
+            graphics.draw_polygon(static_poly.points, Color::WHITE);
+            graphics.draw_circle(static_poly.visual_center(), 5.0f, Color::GREEN);
+
+            graphics.draw_polygon(poly.points, Color::BLACK);
+            graphics.draw_circle(poly.visual_center(), 5.0f, Color::GREEN);
+        }
+
+        if (draw_points) {
+            for (const auto& p:static_poly.points) {
+                graphics.draw_circle(p, 5.0f, Color::CYAN);
+            }
+
+            for (const auto& p:poly.points) {
+                graphics.draw_circle(p, 5.0f, Color::BLUE);
+            }
+        }
+
+        if (draw_normals) {
+            for (const auto& l:normal_lines_a) {
+                if (l.color.x == 0.5f)
+                    graphics.draw_line(l.p1, l.p2, l.color);
+                else
+                    graphics.draw_line(l.p1, l.p2, Color::YELLOW);
+
+                if (info) std::cerr << l << '\n';
+            }
+            
+            for (const auto& l:normal_lines_b) {
+                if (l.color.x == 0.5f)
+                    graphics.draw_line(l.p1, l.p2, l.color);
+                else 
+                    graphics.draw_line(l.p1, l.p2, Color::YELLOW);
+
+                if (info) std::cerr << l << '\n';
+            }
+        }
+
+        if (info) {
+            for (const auto& p:static_poly.points) {
+                std::cerr << "static poly points\n";
+                std::cerr << p.x << " " << p.y << '\n';
+            }
+
+            for (const auto& p:poly.points) {
+                std::cerr << "player poly points\n";
+                std::cerr << p.x << " " << p.y << '\n';
+            }
+        }
+
 
         graphics.swap_buffers();
 
@@ -189,56 +242,3 @@ int main()
 
     return 0;
 }
-
-
-/*
-========================================================================== SHIPT MOVEMENT
-        if (toggle) {
-            if (im.key_down(SDL_SCANCODE_A)) {
-                ship_angle += dt*150; Transform::clamp_angle(ship_angle);
-            }
-            if (im.key_down(SDL_SCANCODE_D)) {
-                ship_angle -= dt*150; Transform::clamp_angle(ship_angle);
-            }
-
-            if (im.key_down(SDL_SCANCODE_W)) {
-                // visually ship model in opengl coordinate system looks like it is already rotated by 90 degrees
-                // so in order to move the position of the ship according to the tip of the triangle
-                // we need to offset angles by 90 degrees
-                ship_pos.x += std::cos(Transform::to_radians(ship_angle+90.0f))*ship_velocity*dt;
-                ship_pos.y += std::sin(Transform::to_radians(ship_angle+90.0f))*ship_velocity*dt;
-            }
-        }
-==========================================================================
-        if (toggle)
-            graphics.draw_triangle(ship_transform, {1.0f, 0.0f, 0.0f, 1.0f});
-        else 
-            graphics.draw_polygon(points, {0.1f, 1.0f, 0.2f, 1.0f});
-
-========================================================================
-        if (!sat(poly1, poly2)) {
-            graphics.draw_polygon(poly1, {0.60f, 0.20f, 0.0f, 1.0f});
-            graphics.draw_polygon(poly2, {0.10f, 0.90f, 0.15f, 1.0f});
-        }
-        else {
-            graphics.draw_polygon(poly1, {1.0f, 1.0f, 1.0f, 1.0f});
-            graphics.draw_polygon(poly2, {0.0f, 0.0f, 0.0f, 1.0f});
-        }
-
-=====================================================================
-        // debug SAT
-        if (draw_points) {
-            for (std::size_t i{}; i<poly1.size(); ++i) {
-                graphics.draw_circle(poly1[i], 7.0f, circle_colors[i]);
-            }
-            for (std::size_t i{}; i<poly2.size(); ++i) {
-                graphics.draw_circle(poly2[i], 7.0f, circle_colors[i]);
-            }
-        }
-
-        if (draw_normals) {
-            for (std::size_t i{}; i<normal_lines.size(); ++i) {
-                graphics.draw_line(normal_lines[i].p1, normal_lines[i].p2, circle_colors[i%circle_colors.size()]);
-            }
-        }
-*/
