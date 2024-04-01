@@ -13,6 +13,8 @@ public:
     void update(float dt);
     void draw();
 
+    std::vector<glm::vec2> get_points_in_world();
+
 private:
     glm::mat4 transform_mat();
 
@@ -25,7 +27,5 @@ private:
     float _angle; // in degrees
     glm::vec2 _pos;
     glm::vec2 _velocity;
-
-
 
 };

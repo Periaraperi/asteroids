@@ -1,10 +1,12 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 class Graphics;
 class Input_Manager;
 class Ship;
+class Asteroid;
 
 class Game {
 public:
@@ -22,6 +24,7 @@ private:
     Input_Manager& _input_manager;
     
     std::unique_ptr<Ship> _ship;
+    std::vector<std::unique_ptr<Asteroid>> _asteroids;
 
 public:
     // disable copy move ops

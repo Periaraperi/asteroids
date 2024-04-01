@@ -89,3 +89,16 @@ void Ship::draw()
 {
     _graphics.draw_polygon(_ship_model, transform_mat(), {1.0f, 0.0f, 0.0f, 1.0f});
 }
+
+std::vector<glm::vec2> Ship::get_points_in_world()
+{
+    std::vector<glm::vec2> vec; vec.reserve(_ship_model.size());
+    auto transform = transform_mat();
+    for (const auto& p:_ship_model) {
+        glm::vec4 v{p.x, p.y, 0.0f, 1.0f};
+        glm::vec4 transformed = transform*v;
+        vec.emplace_back(transformed.x, transformed.y);
+    }
+    return vec;
+}
+

@@ -17,6 +17,7 @@ set(SRCS
     ${SRC_DIR}/physics.cpp
     ${SRC_DIR}/game.cpp
     ${SRC_DIR}/ship.cpp
+    ${SRC_DIR}/asteroid.cpp
 
     ${EXTERNAL_INCLUDE_DIR}/glad/src/glad.c
 )
