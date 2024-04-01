@@ -254,6 +254,9 @@ void Graphics::draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color)
     GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0));
 }
 
+
+// draw polygon without transform.
+// points are in world space
 void Graphics::draw_polygon(const std::vector<glm::vec2>& points, glm::vec4 color)
 {
     PERIA_ASSERT(points.size() >= 3, "draw_polygon() needs at least 3 points");
@@ -300,6 +303,59 @@ void Graphics::draw_polygon(const std::vector<glm::vec2>& points, glm::vec4 colo
     _triangle_shader->bind();
     // since we pass points in world space. No need for model matrix
     _triangle_shader->set_mat4("u_mvp", _projection);
+
+    GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0)); // indexed draw with triangles
+}
+
+// draw polygon with transform.
+// points are normalized
+void Graphics::draw_polygon(const std::vector<glm::vec2>& points, 
+                            const glm::mat4& transform, glm::vec4 color)
+{
+    PERIA_ASSERT(points.size() >= 3, "draw_polygon() needs at least 3 points");
+    if (points.size() < 3) return;
+
+    uint32_t vao;
+    GL_CALL(glCreateVertexArrays(1, &vao));
+    GL_CALL(glBindVertexArray(vao));
+
+    std::vector<Polygon_Vertex> vertex_data(points.size());
+    for (std::size_t i{}; i<vertex_data.size(); ++i) {
+        vertex_data[i].pos = points[i];
+        vertex_data[i].color = color;
+    }
+
+    std::vector<uint32_t> index_data;
+    index_data.reserve((points.size()-2)*3);
+
+    for (std::size_t i=1; i<=points.size()-2; ++i) {
+        index_data.push_back(0); // 0-th point is the start
+        index_data.push_back(i);
+        index_data.push_back(i+1);
+    }
+    
+    uint32_t vbo;
+    GL_CALL(glCreateBuffers(1, &vbo));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Polygon_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
+
+    uint32_t ibo;
+    GL_CALL(glCreateBuffers(1, &ibo));
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)*index_data.size(), index_data.data(), GL_STATIC_DRAW));
+
+
+    GL_CALL(glEnableVertexAttribArray(0));
+    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), 0));
+
+    GL_CALL(glEnableVertexAttribArray(1));
+    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), (const void*) sizeof(Polygon_Vertex::pos)));
+
+    // current implementation of triangle shader works for polygons.
+    // we just create polygon with triangles, using indexed draw call
+    _triangle_shader->bind();
+    // since we pass points in world space. No need for model matrix
+    _triangle_shader->set_mat4("u_mvp", _projection*transform);
 
     GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0)); // indexed draw with triangles
 }
