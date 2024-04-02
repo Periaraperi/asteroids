@@ -1,31 +1,23 @@
 #pragma once
 
 #include <vector>
-#include <glm/vec2.hpp>
-#include <glm/mat4x4.hpp>
+#include "transform.hpp"
 
 class Input_Manager;
 class Graphics;
 
 class Ship {
 public:
-    Ship(Graphics& graphics, Input_Manager& input_manager);
-    void update(float dt);
-    void draw();
+    explicit Ship(glm::vec2 world_pos);
+    void update(Graphics& g, Input_Manager& im, float dt);
+    void draw(Graphics& g);
 
     std::vector<glm::vec2> get_points_in_world();
 
 private:
-    glm::mat4 transform_mat();
-
-private:
-    Graphics& _graphics;
-    Input_Manager& _input_manager;
     std::vector<glm::vec2> _ship_model;
 
-    float _scale;
-    float _angle; // in degrees
-    glm::vec2 _pos;
+    Transform _transform;
     glm::vec2 _velocity;
 
 };
