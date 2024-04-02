@@ -1,11 +1,13 @@
 #include "ship.hpp"
 
+#include <algorithm>
+
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "graphics.hpp"
 #include "input_manager.hpp"
 
-constexpr float ROTATION_SPEED = 150.0f;
+constexpr float ROTATION_SPEED = 180.0f;
 constexpr float ACCELERATION = 100.0f;
 
 static void clamp_angle(float& angle) noexcept
@@ -62,25 +64,35 @@ void Ship::update(float dt)
     }
 
     if (_input_manager.key_down(SDL_SCANCODE_W)) {
-        _velocity.x += std::cos(glm::radians(_angle+90.0f))*ACCELERATION*dt;
-        _velocity.y += std::sin(glm::radians(_angle+90.0f))*ACCELERATION*dt;
+        // modify this later
+        constexpr int SPEED = 450;
+        _pos.x += std::cos(glm::radians(_angle+90.0f))*SPEED*dt;
+        _pos.y += std::sin(glm::radians(_angle+90.0f))*SPEED*dt;
     }
 
-    _pos.x += _velocity.x*dt;
-    _pos.y += _velocity.y*dt;
+    //_pos.x += _velocity.x*dt;
+    //_pos.y += _velocity.y*dt;
 
+    // screen wrap
+    auto world_pos = get_points_in_world();
+    auto min_x = std::min_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.x<b.x;})->x;
+    auto max_x = std::max_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.x<b.x;})->x;
+    auto min_y = std::min_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.y<b.y;})->y;
+    auto max_y = std::max_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.y<b.y;})->y;
+    
     auto [sw, sh] = _graphics.get_window_size();
-    if (_pos.x > sw) {
-        _pos.x -= sw;
+    if (min_x > sw) {
+        _pos.x -= (sw+max_x-min_x);
     }
-    else if (_pos.x < 0.0f) {
-        _pos.x += sw;
+    else if (max_x < 0.0f) {
+        _pos.x += (sw+max_x-min_x);
     }
-    if (_pos.y > sh) {
-        _pos.y -= sh;
+
+    if (min_y > sh) {
+        _pos.y -= (sh+max_y-min_y);
     }
-    else if (_pos.y < 0.0f) {
-        _pos.y += sh;
+    else if (max_y < 0.0f) {
+        _pos.y += (sh+max_y-min_y);
     }
 
 }

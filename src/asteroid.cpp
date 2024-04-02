@@ -1,5 +1,6 @@
 #include "asteroid.hpp"
 
+#include <algorithm>
 #include <random>
 
 #include <glm/glm.hpp>
@@ -36,30 +37,56 @@ int get_int(int l, int r)
     return dist(rd);
 }
 
-
-Asteroid::Asteroid(Graphics& graphics)
-    :_graphics{graphics},
-     _asteroid{gen_random_asteroid()}
+//Asteroid::Asteroid(Graphics& graphics)
+//    :_graphics{graphics},
+//     _asteroid{gen_random_asteroid()}
+//{
+//    gen_random_asteroid();
+//}
+    
+Asteroid::Asteroid(const std::vector<glm::vec2>& normalized_points, glm::vec2 world_pos)
+    :_pos{world_pos}, _asteroid{normalized_points}
 {
-    gen_random_asteroid();
+    _angle_rotation_speed = get_float(20.0f, 30.0f);
 }
 
-Asteroid::Asteroid(Graphics& graphics, glm::vec2 world_pos)
-    :_graphics{graphics},
-     _pos{world_pos},
+Asteroid::Asteroid(glm::vec2 world_pos)
+    :_pos{world_pos},
      _asteroid{gen_random_asteroid()}
 {
     _angle_rotation_speed = get_float(20.0f, 30.0f);
     gen_random_asteroid();
 }
 
-void Asteroid::update(float dt)
+void Asteroid::update(Graphics& g, float dt)
 {
     _angle += _angle_rotation_speed*dt;
     clamp_angle(_angle);
 
     _pos.x += _velocity.x*dt;
     _pos.y += _velocity.y*dt;
+
+    // screen wrap
+    auto world_pos = get_points_in_world();
+    auto min_x = std::min_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.x<b.x;})->x;
+    auto max_x = std::max_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.x<b.x;})->x;
+    auto min_y = std::min_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.y<b.y;})->y;
+    auto max_y = std::max_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.y<b.y;})->y;
+    
+    auto [sw, sh] = g.get_window_size();
+    if (min_x > sw) {
+        _pos.x -= (sw+max_x-min_x);
+    }
+    else if (max_x < 0.0f) {
+        _pos.x += (sw+max_x-min_x);
+    }
+
+    if (min_y > sh) {
+        _pos.y -= (sh+max_y-min_y);
+    }
+    else if (max_y < 0.0f) {
+        _pos.y += (sh+max_y-min_y);
+    }
 }
 
 glm::mat4 transform_mat(glm::vec2 pos, float scale, float angle=0.0f)
@@ -69,11 +96,10 @@ glm::mat4 transform_mat(glm::vec2 pos, float scale, float angle=0.0f)
            glm::scale(glm::mat4(1.0f), glm::vec3(scale, scale, 1.0f));
 }
 
-void Asteroid::draw()
+void Asteroid::draw(Graphics& g)
 {
-    _graphics.draw_polygon(_asteroid, transform_mat(_pos, 150.0f, _angle), {0.0f, 1.0f, 0.0f, 1.0f});
+    g.draw_polygon(_asteroid, transform_mat(_pos, 150.0f, _angle), {0.0f, 1.0f, 0.0f, 1.0f});
 }
-
 
 // will work for now
 std::vector<glm::vec2> Asteroid::gen_random_asteroid()
@@ -116,3 +142,26 @@ std::vector<glm::vec2> Asteroid::get_points_in_world()
     return vec;
 }
 
+std::pair<std::vector<glm::vec2>, std::vector<glm::vec2>> Asteroid::split()
+{
+    if (_asteroid.size() == 3) {
+        return {{}, {}};
+    }
+
+    int a = get_int(0, _asteroid.size()-1);
+    int b = (a+2) % _asteroid.size();
+    
+    std::vector<glm::vec2> asteroid1;
+    for (int i=a; i!=b; i=((i+1)%_asteroid.size())) {
+        asteroid1.push_back(_asteroid[i]);
+    }
+    asteroid1.push_back(_asteroid[b]);
+
+    std::vector<glm::vec2> asteroid2;
+    for(int i=b; i!=a; i=((i+1)%_asteroid.size())) {
+        asteroid2.push_back(_asteroid[i]);
+    }
+    asteroid2.push_back(_asteroid[a]);
+
+    return {asteroid1, asteroid2};
+}

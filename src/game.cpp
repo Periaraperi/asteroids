@@ -16,9 +16,9 @@ Game::Game(Graphics& graphics, Input_Manager& input_manager)
     _ship = std::make_unique<Ship>(_graphics, _input_manager);
     
     _asteroids.reserve(2);
-    _asteroids.emplace_back(std::make_unique<Asteroid>(_graphics, glm::vec2{350.0f, 600.0f}));
+    _asteroids.emplace_back(std::make_unique<Asteroid>(glm::vec2{350.0f, 600.0f}));
     _asteroids.back()->set_velocity({30.0f, -25.0f});
-    _asteroids.emplace_back(std::make_unique<Asteroid>(_graphics, glm::vec2{_graphics.get_window_size().first-350.0f, 600.0f}));
+    _asteroids.emplace_back(std::make_unique<Asteroid>(glm::vec2{_graphics.get_window_size().first-350.0f, 600.0f}));
     _asteroids.back()->set_velocity({-30.0f, -25.0f});
 
     PERIA_LOG("Game ctor()");
@@ -65,7 +65,21 @@ void Game::run()
 void Game::update(float dt)
 {
     for (const auto& a:_asteroids) {
-        a->update(dt);
+        a->update(_graphics, dt);
+    }
+    if (_input_manager.key_pressed(SDL_SCANCODE_B)) {
+        if (!_asteroids.empty()) {
+            auto [a1, a2] = _asteroids[0]->split();
+            auto pos = _asteroids[0]->get_world_pos(); // gives center
+            _asteroids.erase(_asteroids.begin());
+            if (!a1.empty() && !a2.empty()) {
+                _asteroids.emplace_back(std::make_unique<Asteroid>(a1, pos+glm::vec2{0.0f, 50.0f}));
+                _asteroids.emplace_back(std::make_unique<Asteroid>(a2, pos+glm::vec2{0.0f, -50.0f}));
+            }
+            else {
+                PERIA_LOG("GATAVDA!!!");
+            }
+        }
     }
     _ship->update(dt);
 
@@ -88,7 +102,7 @@ void Game::render()
     // DRAW CALLS HERE!
     
     for (const auto& a:_asteroids) {
-        a->draw();
+        a->draw(_graphics);
     }
 
     _ship->draw();
