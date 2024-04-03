@@ -7,6 +7,7 @@ class Graphics;
 class Input_Manager;
 class Ship;
 class Asteroid;
+class Bullet;
 
 class Game {
 public:
@@ -25,6 +26,7 @@ private:
     
     std::unique_ptr<Ship> _ship;
     std::vector<std::unique_ptr<Asteroid>> _asteroids;
+    std::vector<Bullet> _bullets;
 
 public:
     // disable copy move ops

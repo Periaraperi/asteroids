@@ -92,3 +92,7 @@ std::vector<glm::vec2> Ship::get_points_in_world()
     return vec;
 }
 
+glm::vec2 Ship::get_direction_vector()
+{
+    return {std::cos(glm::radians(_transform.angle+90.0f)), std::sin(glm::radians(_transform.angle+90.0f))};
+}

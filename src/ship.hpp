@@ -13,6 +13,7 @@ public:
     void draw(Graphics& g);
 
     std::vector<glm::vec2> get_points_in_world();
+    glm::vec2 get_direction_vector();
 
 private:
     std::vector<glm::vec2> _ship_model;
