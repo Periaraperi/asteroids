@@ -8,29 +8,44 @@ class Graphics;
 class Asteroid {
 public:
     enum class Asteroid_Type {
-        DEFAULT = 0
+        SMALL = 0,
+        MEDIUM,
+        LARGE,
     };
 
-    explicit Asteroid(glm::vec2 world_pos);
-    Asteroid(const std::vector<glm::vec2>& normalized_points, glm::vec2 world_pos);
+    Asteroid() = default;
+
+    // pos - initial world pos.
+    // dir_vector - normalized direction vector.
+    Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vector);
 
     void update(Graphics& g, float dt);
-    void draw(Graphics& g);
+    void draw(Graphics& g) const;
 
-    glm::vec2 get_world_pos() const {return _transform.pos;}
-    bool dead() const { return _dead; }
+    [[nodiscard]]
+    glm::vec2 get_world_pos() const;
+
+    [[nodiscard]]
+    bool dead() const;
+
+    [[nodiscard]]
+    bool empty() const;
+
     void explode();
-    
-    void set_velocity(glm::vec2 v);
 
+    [[nodiscard]]
     std::vector<glm::vec2> get_points_in_world();
 
-    std::pair<std::vector<glm::vec2>, std::vector<glm::vec2>> split();
+    [[nodiscard]]
+    std::pair<Asteroid, Asteroid> split();
 
 private:
-    std::vector<glm::vec2> gen_random_asteroid();
+
+    [[nodiscard]]
+    std::vector<glm::vec2> init_asteroid_model();
 
 private:
+    Asteroid_Type _type;
     Transform _transform{};
 
     glm::vec2 _velocity{};

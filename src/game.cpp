@@ -19,10 +19,12 @@ Game::Game(Graphics& graphics, Input_Manager& input_manager)
     _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
     
     _asteroids.reserve(2);
-    _asteroids.emplace_back(std::make_unique<Asteroid>(glm::vec2{350.0f, 600.0f}));
-    _asteroids.back()->set_velocity({50.0f, -35.0f});
-    _asteroids.emplace_back(std::make_unique<Asteroid>(glm::vec2{_graphics.get_window_size().first-350.0f, 600.0f}));
-    _asteroids.back()->set_velocity({-160.0f, -25.0f});
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
+                            glm::vec2{350.0f, 600.0f},
+                            glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))});
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
+                            glm::vec2{_graphics.get_window_size().first-350.0f, 600.0f},
+                            glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))});
 
     _bullets.reserve(300); // reserve some space since we know we will shoot a lot
 
@@ -69,8 +71,8 @@ void Game::run()
 
 void Game::update(float dt)
 {
-    for (const auto& a:_asteroids) {
-        a->update(_graphics, dt);
+    for (auto& a:_asteroids) {
+        a.update(_graphics, dt);
     }
 
     _ship->update(_graphics, _input_manager, dt);
@@ -87,8 +89,10 @@ void Game::update(float dt)
         b.update(_graphics, dt);
     }
 
-    for (const auto& a:_asteroids) {
-        auto asteroid_points = a->get_points_in_world();
+    std::vector<Asteroid> new_asteroids;
+
+    for (auto& a:_asteroids) {
+        auto asteroid_points = a.get_points_in_world();
         if (sat({ship_poly[0], ship_poly[1], ship_poly[2]}, asteroid_points)) {
             PERIA_LOG("SHIP DESTROYED!!!");
         }
@@ -100,12 +104,11 @@ void Game::update(float dt)
             auto bullet_points = b.get_world_points();
             if (sat(bullet_points, asteroid_points)) {
                 b.explode();
-                a->explode();
-                auto [a1, a2] = a->split();
-                auto pos = a->get_world_pos(); // gives center
+                a.explode();
+                auto [a1, a2] = a.split();
                 if (!a1.empty() && !a2.empty()) {
-                    _asteroids.emplace_back(std::make_unique<Asteroid>(a1, pos+glm::vec2{0.0f, 50.0f}));
-                    _asteroids.emplace_back(std::make_unique<Asteroid>(a2, pos+glm::vec2{0.0f, -50.0f}));
+                    new_asteroids.emplace_back(std::move(a1));
+                    new_asteroids.emplace_back(std::move(a2));
                 }
             }
         }
@@ -116,8 +119,12 @@ void Game::update(float dt)
                    _bullets.end());
 
     _asteroids.erase(std::remove_if(_asteroids.begin(), _asteroids.end(), 
-                   [](const std::unique_ptr<Asteroid>& a) { return a->dead(); }),
+                   [](const Asteroid a) { return a.dead(); }),
                    _asteroids.end());
+
+    for (auto& a:new_asteroids) {
+        _asteroids.emplace_back(std::move(a));
+    }
 }
 
 void Game::render()
@@ -126,7 +133,7 @@ void Game::render()
     // DRAW CALLS HERE!
     
     for (const auto& a:_asteroids) {
-        a->draw(_graphics);
+        a.draw(_graphics);
     }
 
     _ship->draw(_graphics);

@@ -2,9 +2,17 @@
 
 #include <algorithm>
 #include <random>
+#include <array>
 
 #include "graphics.hpp"
 #include "peria_logger.hpp"
+
+constexpr float SPEED = 150.0f;
+std::array<float, 3> get_speed {
+    150.0f,
+    100.0f,
+    50.0f
+};
 
 std::random_device rd = std::random_device();
 std::mt19937 generator(rd());
@@ -23,19 +31,44 @@ int get_int(int l, int r)
     return dist(rd);
 }
 
-Asteroid::Asteroid(glm::vec2 world_pos)
-    :_transform{world_pos, {150.0f, 150.0f}, 0.0f},
-     _angle_rotation_speed{get_float(20.0f, 30.0f)},
-     _dead{false},
-     _asteroid_model{gen_random_asteroid()}
-{}
+std::vector<std::vector<glm::vec2>> predefined_models = {
+    {{-0.35f, -0.25f}, {-0.55f, 0.25f}, {-0.27f, 0.75f}, {0.35f, 0.85f}, {0.45f, -0.30f}},
+    {{-0.5f, -0.3f}, {-0.6f, 0.55f}, {0.0f, 0.75f}, {0.8f, 0.7f}, {0.8f, -0.35f}},
+    {{0.0f, -0.6f}, {-0.8f, -0.2f}, {-0.6f, 0.8f}, {0.65f, 0.9f}, {0.75f, 0.55f}, {0.7f, -0.3f}},
+    {{-0.6f, -0.15f}, {-0.65f, 0.1f}, {-0.2f, 0.85f}, {0.5f, 1.0f}, {0.9f, 0.4f}, {0.7f, -0.1f}, {0.2f, -0.3f}}
+};
 
-Asteroid::Asteroid(const std::vector<glm::vec2>& normalized_points, glm::vec2 world_pos)
-    :_transform{world_pos, {150.0f, 150.0f}, 0.0f},
+std::vector<glm::vec2> Asteroid::init_asteroid_model()
+{
+    auto i = get_int(0, predefined_models.size()-1);
+    return predefined_models[i];
+}
+
+Asteroid::Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vector)
+    :_type{asteroid_type},
+     _transform{pos, {}, 0.0f},
+     _velocity{dir_vector},
      _angle_rotation_speed{get_float(20.0f, 30.0f)},
      _dead{false},
-     _asteroid_model{normalized_points}
-{}
+     _asteroid_model{init_asteroid_model()}
+{
+    switch (_type) {
+        case Asteroid_Type::SMALL:
+            _transform.scale = {50.0f, 50.0f};
+            _velocity *= get_speed[int(Asteroid_Type::SMALL)];
+            break;
+        case Asteroid_Type::MEDIUM:
+            _transform.scale = {100.0f, 100.0f};
+            _velocity *= get_speed[int(Asteroid_Type::MEDIUM)];
+            break;
+        case Asteroid_Type::LARGE:
+            _transform.scale = {150.0f, 150.0f};
+            _velocity *= get_speed[int(Asteroid_Type::LARGE)];
+            break;
+        default:
+            _transform.scale = {};
+    }
+}
 
 void Asteroid::update(Graphics& g, float dt)
 {
@@ -68,45 +101,23 @@ void Asteroid::update(Graphics& g, float dt)
     }
 }
 
-void Asteroid::draw(Graphics& g)
+void Asteroid::draw(Graphics& g) const
 {
     g.draw_polygon(_asteroid_model, Transform::model(_transform.pos, _transform.scale, _transform.angle), {0.0f, 1.0f, 0.0f, 1.0f});
 }
 
-// will work for now
-[[nodiscard]]
-std::vector<glm::vec2> Asteroid::gen_random_asteroid()
-{
-    // start with regular n sided polygon
-    // and then randomly move points by small angle
-    auto n = get_int(4, 7);
-    std::vector<glm::vec2> a(n);
-    float angle = 360.0f / n;
-
-    for (std::size_t i{}; i<a.size(); ++i) {
-        a[i] = {std::cos(glm::radians(angle*i)), std::sin(glm::radians(angle*i))};
-    }
-    
-    for (auto& i:a) {
-        int k = get_int(0,1);
-        if (k) {
-            float theta = glm::radians(get_float(10.0f, 50.0f));
-            glm::vec2 v = i;
-            i.x = std::cos(theta)*v.x - std::sin(theta)*v.y;
-            i.y = std::sin(theta)*v.x + std::cos(theta)*v.y;
-        }
-    }
-
-    return a;
-}
-
-void Asteroid::set_velocity(glm::vec2 v)
-{ _velocity = v; }
-
 void Asteroid::explode()
 { _dead = true; }
 
-[[nodiscard]]
+glm::vec2 Asteroid::get_world_pos() const
+{ return _transform.pos; }
+
+bool Asteroid::dead() const 
+{ return _dead; }
+
+bool Asteroid::empty() const
+{ return _asteroid_model.empty(); }
+
 std::vector<glm::vec2> Asteroid::get_points_in_world()
 {
     std::vector<glm::vec2> vec; vec.reserve(_asteroid_model.size());
@@ -119,26 +130,18 @@ std::vector<glm::vec2> Asteroid::get_points_in_world()
     return vec;
 }
 
-std::pair<std::vector<glm::vec2>, std::vector<glm::vec2>> Asteroid::split()
+std::pair<Asteroid, Asteroid>
+Asteroid::split()
 {
-    if (_asteroid_model.size() == 3) {
-        return {{}, {}};
+    switch(_type) {
+        case Asteroid_Type::SMALL:
+            return {};
+        case Asteroid_Type::MEDIUM:
+            return {Asteroid{Asteroid_Type::SMALL, _transform.pos+glm::vec2{0.0f, 40.0f}, {0.0f, 1.0f}}, 
+                    Asteroid{Asteroid_Type::SMALL, _transform.pos+glm::vec2{0.0f, -40.0f}, {0.0f, -1.0f}}};
+        case Asteroid_Type::LARGE:
+            return {Asteroid{Asteroid_Type::MEDIUM, _transform.pos+glm::vec2{0.0f, 40.0f}, {0.0f, 1.0f}}, 
+                    Asteroid{Asteroid_Type::MEDIUM, _transform.pos+glm::vec2{0.0f, -40.0f}, {0.0f,-1.0f}}};
     }
-
-    int a = get_int(0, _asteroid_model.size()-1);
-    int b = (a+2) % _asteroid_model.size();
-    
-    std::vector<glm::vec2> asteroid1;
-    for (int i=a; i!=b; i=((i+1)%_asteroid_model.size())) {
-        asteroid1.push_back(_asteroid_model[i]);
-    }
-    asteroid1.push_back(_asteroid_model[b]);
-
-    std::vector<glm::vec2> asteroid2;
-    for(int i=b; i!=a; i=((i+1)%_asteroid_model.size())) {
-        asteroid2.push_back(_asteroid_model[i]);
-    }
-    asteroid2.push_back(_asteroid_model[a]);
-
-    return {asteroid1, asteroid2};
+    return {};
 }

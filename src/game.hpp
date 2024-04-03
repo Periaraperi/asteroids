@@ -25,7 +25,7 @@ private:
     Input_Manager& _input_manager;
     
     std::unique_ptr<Ship> _ship;
-    std::vector<std::unique_ptr<Asteroid>> _asteroids;
+    std::vector<Asteroid> _asteroids;
     std::vector<Bullet> _bullets;
 
 public:
