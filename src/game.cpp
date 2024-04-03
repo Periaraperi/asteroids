@@ -74,32 +74,50 @@ void Game::update(float dt)
     }
 
     _ship->update(_graphics, _input_manager, dt);
+
     auto ship_poly = _ship->get_points_in_world(); // concave, manually make 2 triangles
     const auto& ship_tip = ship_poly[2]; // tip of ship in world space
 
-    if (_input_manager.key_down(SDL_SCANCODE_SPACE)) {
+    // shoot bullets
+    if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
         _bullets.emplace_back(ship_tip, _ship->get_direction_vector());
     }
 
     for (auto& b:_bullets) {
         b.update(_graphics, dt);
     }
+
+    for (const auto& a:_asteroids) {
+        auto asteroid_points = a->get_points_in_world();
+        if (sat({ship_poly[0], ship_poly[1], ship_poly[2]}, asteroid_points)) {
+            PERIA_LOG("SHIP DESTROYED!!!");
+        }
+        else if (sat({ship_poly[0], ship_poly[2], ship_poly[3]}, asteroid_points)) {
+            PERIA_LOG("SHIP DESTROYED!!!");
+        }
+
+        for (auto& b:_bullets) {
+            auto bullet_points = b.get_world_points();
+            if (sat(bullet_points, asteroid_points)) {
+                b.explode();
+                a->explode();
+                auto [a1, a2] = a->split();
+                auto pos = a->get_world_pos(); // gives center
+                if (!a1.empty() && !a2.empty()) {
+                    _asteroids.emplace_back(std::make_unique<Asteroid>(a1, pos+glm::vec2{0.0f, 50.0f}));
+                    _asteroids.emplace_back(std::make_unique<Asteroid>(a2, pos+glm::vec2{0.0f, -50.0f}));
+                }
+            }
+        }
+    }
+    
     _bullets.erase(std::remove_if(_bullets.begin(), _bullets.end(), 
                    [](const Bullet& b) { return b.dead(); }),
                    _bullets.end());
 
-    PERIA_LOG(_bullets.size());
-
-    // check collision here for now
-    for (const auto& a:_asteroids) {
-        if (sat({ship_poly[0], ship_poly[1], ship_poly[2]}, a->get_points_in_world())) {
-            PERIA_LOG("COLLISION 1!!!");
-        }
-        else if (sat({ship_poly[0], ship_poly[2], ship_poly[3]}, a->get_points_in_world())) {
-            PERIA_LOG("COLLISION 2!!!");
-        }
-    }
-
+    _asteroids.erase(std::remove_if(_asteroids.begin(), _asteroids.end(), 
+                   [](const std::unique_ptr<Asteroid>& a) { return a->dead(); }),
+                   _asteroids.end());
 }
 
 void Game::render()
@@ -112,24 +130,10 @@ void Game::render()
     }
 
     _ship->draw(_graphics);
+
     for (const auto& b:_bullets) {
         b.draw(_graphics);
     }
 
     _graphics.swap_buffers();
 }
-
-    //if (_input_manager.key_pressed(SDL_SCANCODE_B)) {
-    //    if (!_asteroids.empty()) {
-    //        auto [a1, a2] = _asteroids[0]->split();
-    //        auto pos = _asteroids[0]->get_world_pos(); // gives center
-    //        _asteroids.erase(_asteroids.begin());
-    //        if (!a1.empty() && !a2.empty()) {
-    //            _asteroids.emplace_back(std::make_unique<Asteroid>(a1, pos+glm::vec2{0.0f, 50.0f}));
-    //            _asteroids.emplace_back(std::make_unique<Asteroid>(a2, pos+glm::vec2{0.0f, -50.0f}));
-    //        }
-    //        else {
-    //            PERIA_LOG("GATAVDA!!!");
-    //        }
-    //    }
-    //}

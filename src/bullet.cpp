@@ -3,7 +3,7 @@
 #include "graphics.hpp"
 
 // in world space
-constexpr float RADIUS = 10.0f;
+constexpr float RADIUS = 7.0f;
 constexpr float SPEED = 600.0f;
 
 Bullet::Bullet(glm::vec2 world_pos, glm::vec2 dir)
@@ -23,5 +23,19 @@ void Bullet::update(Graphics& g, float dt)
 
 void Bullet::draw(Graphics& g) const
 {
-    g.draw_circle(_pos, RADIUS, {0.5f, 0.5f, 0.0f, 1.0f});
+    g.draw_rect({_pos.x-RADIUS, _pos.y+RADIUS}, {2*RADIUS, 2*RADIUS}, {0.5f, 0.5f, 0.0f, 1.0f});
+}
+
+void Bullet::explode()
+{ _dead = true; }
+
+// in clockwise order
+std::vector<glm::vec2> Bullet::get_world_points() const
+{
+    return {
+        {_pos.x-RADIUS, _pos.y+RADIUS},
+        {_pos.x+RADIUS, _pos.y+RADIUS},
+        {_pos.x+RADIUS, _pos.y-RADIUS},
+        {_pos.x-RADIUS, _pos.y-RADIUS}
+    };
 }

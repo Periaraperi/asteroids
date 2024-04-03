@@ -12,11 +12,14 @@ public:
     };
 
     explicit Asteroid(glm::vec2 world_pos);
+    Asteroid(const std::vector<glm::vec2>& normalized_points, glm::vec2 world_pos);
 
     void update(Graphics& g, float dt);
     void draw(Graphics& g);
 
     glm::vec2 get_world_pos() const {return _transform.pos;}
+    bool dead() const { return _dead; }
+    void explode();
     
     void set_velocity(glm::vec2 v);
 
@@ -32,6 +35,7 @@ private:
 
     glm::vec2 _velocity{};
     float _angle_rotation_speed{};
+    bool _dead{};
 
     std::vector<glm::vec2> _asteroid_model;
 };

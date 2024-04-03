@@ -26,7 +26,15 @@ int get_int(int l, int r)
 Asteroid::Asteroid(glm::vec2 world_pos)
     :_transform{world_pos, {150.0f, 150.0f}, 0.0f},
      _angle_rotation_speed{get_float(20.0f, 30.0f)},
+     _dead{false},
      _asteroid_model{gen_random_asteroid()}
+{}
+
+Asteroid::Asteroid(const std::vector<glm::vec2>& normalized_points, glm::vec2 world_pos)
+    :_transform{world_pos, {150.0f, 150.0f}, 0.0f},
+     _angle_rotation_speed{get_float(20.0f, 30.0f)},
+     _dead{false},
+     _asteroid_model{normalized_points}
 {}
 
 void Asteroid::update(Graphics& g, float dt)
@@ -95,6 +103,9 @@ std::vector<glm::vec2> Asteroid::gen_random_asteroid()
 void Asteroid::set_velocity(glm::vec2 v)
 { _velocity = v; }
 
+void Asteroid::explode()
+{ _dead = true; }
+
 [[nodiscard]]
 std::vector<glm::vec2> Asteroid::get_points_in_world()
 {
@@ -108,26 +119,26 @@ std::vector<glm::vec2> Asteroid::get_points_in_world()
     return vec;
 }
 
-//std::pair<std::vector<glm::vec2>, std::vector<glm::vec2>> Asteroid::split()
-//{
-//    if (_asteroid.size() == 3) {
-//        return {{}, {}};
-//    }
-//
-//    int a = get_int(0, _asteroid.size()-1);
-//    int b = (a+2) % _asteroid.size();
-//    
-//    std::vector<glm::vec2> asteroid1;
-//    for (int i=a; i!=b; i=((i+1)%_asteroid.size())) {
-//        asteroid1.push_back(_asteroid[i]);
-//    }
-//    asteroid1.push_back(_asteroid[b]);
-//
-//    std::vector<glm::vec2> asteroid2;
-//    for(int i=b; i!=a; i=((i+1)%_asteroid.size())) {
-//        asteroid2.push_back(_asteroid[i]);
-//    }
-//    asteroid2.push_back(_asteroid[a]);
-//
-//    return {asteroid1, asteroid2};
-//}
+std::pair<std::vector<glm::vec2>, std::vector<glm::vec2>> Asteroid::split()
+{
+    if (_asteroid_model.size() == 3) {
+        return {{}, {}};
+    }
+
+    int a = get_int(0, _asteroid_model.size()-1);
+    int b = (a+2) % _asteroid_model.size();
+    
+    std::vector<glm::vec2> asteroid1;
+    for (int i=a; i!=b; i=((i+1)%_asteroid_model.size())) {
+        asteroid1.push_back(_asteroid_model[i]);
+    }
+    asteroid1.push_back(_asteroid_model[b]);
+
+    std::vector<glm::vec2> asteroid2;
+    for(int i=b; i!=a; i=((i+1)%_asteroid_model.size())) {
+        asteroid2.push_back(_asteroid_model[i]);
+    }
+    asteroid2.push_back(_asteroid_model[a]);
+
+    return {asteroid1, asteroid2};
+}
