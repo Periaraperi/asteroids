@@ -13,20 +13,10 @@
 #include "bullet.hpp"
 
 Game::Game(Graphics& graphics, Input_Manager& input_manager)
-    :_graphics{graphics}, _input_manager{input_manager}
+    :_running{true}, _state{Game_State::MAIN_MENU},
+     _graphics{graphics}, _input_manager{input_manager}
 {
-    auto [w, h] = _graphics.get_window_size();
-    _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
-    
-    _asteroids.reserve(2);
-    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
-                            glm::vec2{350.0f, 600.0f},
-                            glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))});
-    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
-                            glm::vec2{_graphics.get_window_size().first-350.0f, 600.0f},
-                            glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))});
-
-    _bullets.reserve(300); // reserve some space since we know we will shoot a lot
+    _bullets.reserve(512); // reserve some space since we know we will shoot a lot
 
     PERIA_LOG("Game ctor()");
 }
@@ -40,7 +30,7 @@ void Game::run()
 {
     uint32_t prev = SDL_GetTicks();
 
-    for (bool running=true; running;) {
+    while (_running) {
         uint32_t now = SDL_GetTicks();
         float dt = (now - prev) / 1000.0f; // delta time in seconds
         prev = now;
@@ -49,7 +39,7 @@ void Game::run()
 
         for (SDL_Event ev; SDL_PollEvent(&ev);) {
             if (ev.type == SDL_QUIT) {
-                running = false;
+                _running = false;
                 break;
             } 
             else if (ev.type == SDL_WINDOWEVENT) { 
@@ -60,7 +50,6 @@ void Game::run()
         }
 
         update(dt);
-
         _input_manager.update_prev_state();
 
         render();
@@ -70,6 +59,74 @@ void Game::run()
 }
 
 void Game::update(float dt)
+{
+    switch(_state) {
+        case Game_State::MAIN_MENU:
+            update_main_menu_state();
+            break;
+        case Game_State::PLAYING:
+            update_playing_state(dt);
+            break;
+        case Game_State::DEAD:
+            update_dead_state();
+            break;
+        case Game_State::WON:
+            update_won_state();
+            break;
+    }
+}
+
+void Game::render()
+{
+    _graphics.clear_buffer();
+    // DRAW CALLS HERE!
+    
+    auto [w, h] = _graphics.get_window_size();
+    switch(_state) {
+        case Game_State::MAIN_MENU:
+        {
+            _graphics.draw_circle({w*0.5f, h*0.5f}, 100.0f, {0.34f, 0.52f, 0.22f, 1.0f});
+        } break;
+        case Game_State::PLAYING:
+        {
+            for (const auto& a:_asteroids) {
+                a.draw(_graphics);
+            }
+
+            _ship->draw(_graphics);
+            for (const auto& b:_bullets) {
+                b.draw(_graphics);
+            }
+        } break;
+        case Game_State::DEAD:
+        {
+            _graphics.draw_circle({w*0.5f, h*0.5f}, 100.0f, {0.84f, 0.52f, 0.42f, 1.0f});
+        } break;
+        case Game_State::WON:
+        {
+            _graphics.draw_circle({w*0.5f, h*0.5f}, 100.0f, {0.0f, 0.0f, 0.0f, 1.0f});
+        } break;
+    }
+
+    _graphics.swap_buffers();
+}
+
+// ============================
+// Game state specific updates.
+// ============================
+
+void Game::update_main_menu_state()
+{
+    if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
+        init_level();
+        _state = Game_State::PLAYING;
+    }
+    if (_input_manager.key_pressed(SDL_SCANCODE_ESCAPE)) {
+        _running = false; // quit program
+    }
+}
+
+void Game::update_playing_state(float dt)
 {
     for (auto& a:_asteroids) {
         a.update(_graphics, dt);
@@ -96,10 +153,12 @@ void Game::update(float dt)
     for (auto& a:_asteroids) {
         auto asteroid_points = a.get_points_in_world();
         if (sat({ship_poly[0], ship_poly[1], ship_poly[2]}, asteroid_points)) {
-            PERIA_LOG("SHIP DESTROYED!!!");
+            _state = Game_State::DEAD;
+            return;
         }
         else if (sat({ship_poly[0], ship_poly[2], ship_poly[3]}, asteroid_points)) {
-            PERIA_LOG("SHIP DESTROYED!!!");
+            _state = Game_State::DEAD;
+            return;
         }
 
         for (auto& b:_bullets) {
@@ -129,22 +188,49 @@ void Game::update(float dt)
     for (auto& a:new_asteroids) {
         _asteroids.emplace_back(std::move(a));
     }
+
+    if (_asteroids.empty()) {
+        _state = Game_State::WON;
+    }
 }
 
-void Game::render()
+void Game::update_dead_state()
 {
-    _graphics.clear_buffer();
-    // DRAW CALLS HERE!
+    if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
+        init_level();
+        _state = Game_State::PLAYING;
+    }
+    if (_input_manager.key_pressed(SDL_SCANCODE_ESCAPE)) {
+        _state = Game_State::MAIN_MENU;
+    }
+}
+
+void Game::update_won_state()
+{
+    if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
+        // TODO: next level 
+        init_level();
+        _state = Game_State::PLAYING;
+    }
+    if (_input_manager.key_pressed(SDL_SCANCODE_ESCAPE)) {
+        _state = Game_State::MAIN_MENU;
+    }
+}
+
+void Game::init_level()
+{
+    auto [w, h] = _graphics.get_window_size();
+
+    _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
     
-    for (const auto& a:_asteroids) {
-        a.draw(_graphics);
-    }
+    _asteroids.clear();
+    _bullets.clear();
 
-    _ship->draw(_graphics);
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
+                            glm::vec2{350.0f, 600.0f},
+                            glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))});
 
-    for (const auto& b:_bullets) {
-        b.draw(_graphics);
-    }
-
-    _graphics.swap_buffers();
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
+                            glm::vec2{_graphics.get_window_size().first-350.0f, 600.0f},
+                            glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))});
 }
