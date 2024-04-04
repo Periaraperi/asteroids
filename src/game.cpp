@@ -89,6 +89,8 @@ void Game::update(float dt)
         b.update(_graphics, dt);
     }
 
+    // stores asteroids from potential split
+    // which later are moved into _asteroids member
     std::vector<Asteroid> new_asteroids;
 
     for (auto& a:_asteroids) {
@@ -105,10 +107,12 @@ void Game::update(float dt)
             if (sat(bullet_points, asteroid_points)) {
                 b.explode();
                 a.explode();
-                auto [a1, a2] = a.split();
-                if (!a1.empty() && !a2.empty()) {
-                    new_asteroids.emplace_back(std::move(a1));
-                    new_asteroids.emplace_back(std::move(a2));
+                auto asteroids = a.split(); // vector of 0 or 3 or 6 asteroids
+                // move temporary smaller asteroids into new_asteroids
+                if (!asteroids.empty()) {
+                    for (auto& tmp:asteroids) {
+                        new_asteroids.emplace_back(std::move(tmp));
+                    }
                 }
             }
         }

@@ -6,6 +6,7 @@
 
 #include "graphics.hpp"
 #include "peria_logger.hpp"
+#include "opengl_errors.hpp"
 
 constexpr float SPEED = 150.0f;
 std::array<float, 3> get_speed {
@@ -130,18 +131,32 @@ std::vector<glm::vec2> Asteroid::get_points_in_world()
     return vec;
 }
 
-std::pair<Asteroid, Asteroid>
-Asteroid::split()
+std::vector<Asteroid> Asteroid::split()
 {
+    std::vector<Asteroid> asteroids;
+    asteroids.reserve(6); // will spawn at most 6 asteroids
+
     switch(_type) {
         case Asteroid_Type::SMALL:
-            return {};
+            break;
         case Asteroid_Type::MEDIUM:
-            return {Asteroid{Asteroid_Type::SMALL, _transform.pos+glm::vec2{0.0f, 40.0f}, {0.0f, 1.0f}}, 
-                    Asteroid{Asteroid_Type::SMALL, _transform.pos+glm::vec2{0.0f, -40.0f}, {0.0f, -1.0f}}};
+            {
+                auto angle = 360.0f / 6;
+                for (std::size_t i{}; i<6; ++i) {
+                    asteroids.emplace_back(Asteroid_Type::SMALL, _transform.pos, 
+                            glm::vec2{std::cos(glm::radians(i*angle)), std::sin(glm::radians(i*angle))});
+                }
+                break;
+            }
         case Asteroid_Type::LARGE:
-            return {Asteroid{Asteroid_Type::MEDIUM, _transform.pos+glm::vec2{0.0f, 40.0f}, {0.0f, 1.0f}}, 
-                    Asteroid{Asteroid_Type::MEDIUM, _transform.pos+glm::vec2{0.0f, -40.0f}, {0.0f,-1.0f}}};
+            {
+                auto angle = 360.0f / 3;
+                for (std::size_t i{}; i<3; ++i) {
+                    asteroids.emplace_back(Asteroid_Type::MEDIUM, _transform.pos, 
+                            glm::vec2{std::cos(glm::radians(i*angle)), std::sin(glm::radians(i*angle))});
+                }
+                break;
+            }
     }
-    return {};
+    return asteroids;
 }

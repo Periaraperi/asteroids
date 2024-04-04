@@ -37,7 +37,7 @@ public:
     std::vector<glm::vec2> get_points_in_world();
 
     [[nodiscard]]
-    std::pair<Asteroid, Asteroid> split();
+    std::vector<Asteroid> split();
 
 private:
 
