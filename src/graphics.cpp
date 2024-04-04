@@ -77,6 +77,7 @@ Graphics::~Graphics()
 void Graphics::cleanup()
 {
     // we want custom order for deletion, hence .reset()
+    // shaders before SDL
     _triangle_shader.reset();
     _circle_shader.reset();
     _line_shader.reset();
@@ -214,6 +215,10 @@ void Graphics::draw_triangle(const glm::mat4& transform, glm::vec4 color)
     _triangle_shader->bind();
     _triangle_shader->set_mat4("u_mvp", _projection*transform);
     GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
+
+    // clean
+    GL_CALL(glDeleteBuffers(1, &vbo));
+    GL_CALL(glDeleteVertexArrays(1, &vao));
 }
 
 void Graphics::draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color)
@@ -252,6 +257,11 @@ void Graphics::draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color)
     _triangle_shader->bind();
     _triangle_shader->set_mat4("u_mvp", _projection);
     GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0));
+
+    // clean
+    GL_CALL(glDeleteBuffers(1, &vbo));
+    GL_CALL(glDeleteBuffers(1, &ibo));
+    GL_CALL(glDeleteVertexArrays(1, &vao));
 }
 
 
@@ -305,6 +315,11 @@ void Graphics::draw_polygon(const std::vector<glm::vec2>& points, glm::vec4 colo
     _triangle_shader->set_mat4("u_mvp", _projection);
 
     GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0)); // indexed draw with triangles
+
+    // clean
+    GL_CALL(glDeleteBuffers(1, &vbo));
+    GL_CALL(glDeleteBuffers(1, &ibo));
+    GL_CALL(glDeleteVertexArrays(1, &vao));
 }
 
 // draw polygon with transform.
@@ -358,6 +373,11 @@ void Graphics::draw_polygon(const std::vector<glm::vec2>& points,
     _triangle_shader->set_mat4("u_mvp", _projection*transform);
 
     GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0)); // indexed draw with triangles
+
+    // clean
+    GL_CALL(glDeleteBuffers(1, &vbo));
+    GL_CALL(glDeleteBuffers(1, &ibo));
+    GL_CALL(glDeleteVertexArrays(1, &vao));
 }
 
 void Graphics::draw_circle(glm::vec2 center, float radius, glm::vec4 color)
@@ -397,6 +417,12 @@ void Graphics::draw_circle(glm::vec2 center, float radius, glm::vec4 color)
     _circle_shader->set_vec2("u_center", center);
     _circle_shader->set_float("u_radius", radius);
     GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0));
+
+
+    // clean
+    GL_CALL(glDeleteBuffers(1, &vbo));
+    GL_CALL(glDeleteBuffers(1, &ibo));
+    GL_CALL(glDeleteVertexArrays(1, &vao));
 }
 
 void Graphics::draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color)
@@ -422,5 +448,10 @@ void Graphics::draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color)
     _line_shader->set_mat4("u_mvp", _projection);
     _line_shader->set_vec4("u_color", color);
     GL_CALL(glDrawArrays(GL_LINES, 0, 2));
+
+
+    // clean
+    GL_CALL(glDeleteBuffers(1, &vbo));
+    GL_CALL(glDeleteVertexArrays(1, &vao));
 }
 
