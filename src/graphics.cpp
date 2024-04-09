@@ -12,6 +12,38 @@
 #include "peria_logger.hpp"
 #include "shader.hpp"
 
+constexpr int MAX_TRIANGLE_COUNT = 4096; // this many triangles per batch
+uint32_t triangle_batch_vao;
+uint32_t triangle_batch_vbo; // dynamic buffer
+
+void init_triangle_batch_data()
+{
+    GL_CALL(glCreateVertexArrays(1, &triangle_batch_vao));
+    GL_CALL(glBindVertexArray(triangle_batch_vao));
+    
+    GL_CALL(glCreateBuffers(1, &triangle_batch_vbo));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, triangle_batch_vbo));
+    // make buffer dynamic since we will update data frequently
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Triangle_Vertex)*MAX_TRIANGLE_COUNT*3, nullptr, GL_DYNAMIC_DRAW));
+
+    // position
+    GL_CALL(glEnableVertexAttribArray(0));
+    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Triangle_Vertex), (const void*)0));
+
+    // color
+    GL_CALL(glEnableVertexAttribArray(1));
+    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Triangle_Vertex), (const void*)sizeof(glm::vec2)));
+
+    PERIA_LOG("INIT BATCH DATA");
+}
+
+void clean_batch_data()
+{
+    GL_CALL(glDeleteBuffers(1, &triangle_batch_vbo));
+    GL_CALL(glDeleteVertexArrays(1, &triangle_batch_vao));
+    PERIA_LOG("CLEANED BATCH DATA");
+}
+
 Graphics::Graphics(const Window_Settings& settings)
     :_window{nullptr}, _context{nullptr}, 
     _settings{settings},
@@ -65,6 +97,10 @@ Graphics::Graphics(const Window_Settings& settings)
     _circle_shader = std::make_unique<Shader>("res/shaders/circle_vert.glsl", "res/shaders/circle_frag.glsl");
     _line_shader = std::make_unique<Shader>("res/shaders/line_vert.glsl", "res/shaders/line_frag.glsl");
 
+    // batching related stuff
+    _triangles_vertices.reserve(MAX_TRIANGLE_COUNT*3);
+    init_triangle_batch_data();
+
     PERIA_LOG("Graphics ctor()");
 }
 
@@ -81,6 +117,8 @@ void Graphics::cleanup()
     _triangle_shader.reset();
     _circle_shader.reset();
     _line_shader.reset();
+
+    clean_batch_data();
 
     SDL_GL_DeleteContext(_context);
 
@@ -179,10 +217,6 @@ void Graphics::wireframe(bool wireframe)
 // I use this only for triangle
 // probably will rewrite renderer for
 // the N-th time xD
-struct Triangle_Vertex {
-    glm::vec2 pos;
-    glm::vec4 color;
-};
 
 struct Polygon_Vertex {
     glm::vec2 pos;
@@ -455,3 +489,75 @@ void Graphics::draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color)
     GL_CALL(glDeleteVertexArrays(1, &vao));
 }
 
+// triangle points in world position in clockwise order
+void Graphics::draw_triangle_batched(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color)
+{
+    _triangles_vertices.push_back({p1, color});
+    _triangles_vertices.push_back({p2, color});
+    _triangles_vertices.push_back({p3, color});
+}
+
+void Graphics::draw_triangle_non_batched(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color)
+{
+    uint32_t vao;
+    GL_CALL(glCreateVertexArrays(1, &vao));
+    GL_CALL(glBindVertexArray(vao));
+    
+    std::vector<Triangle_Vertex> vertex_data {
+        {p1, color},
+        {p2, color}, 
+        {p3, color}
+    };
+    
+    uint32_t vbo;
+    GL_CALL(glCreateBuffers(1, &vbo));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Triangle_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
+
+    GL_CALL(glEnableVertexAttribArray(0));
+    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Triangle_Vertex), 0));
+
+    GL_CALL(glEnableVertexAttribArray(1));
+    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Triangle_Vertex), (const void*) sizeof(Triangle_Vertex::pos)));
+
+    _triangle_shader->bind();
+    _triangle_shader->set_mat4("u_mvp", _projection);
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
+
+    // clean
+    GL_CALL(glDeleteBuffers(1, &vbo));
+    GL_CALL(glDeleteVertexArrays(1, &vao));
+
+}
+
+void Graphics::flush()
+{
+    render_triangles();
+}
+
+void Graphics::render_triangles()
+{
+    int count = _triangles_vertices.size() / 3; // overall, this many triangles
+    std::size_t offset = 0; // offset inside _triangles
+
+    GL_CALL(glBindVertexArray(triangle_batch_vao));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, triangle_batch_vbo));
+    _triangle_shader->bind();
+    _triangle_shader->set_mat4("u_mvp", _projection);
+
+    while (count > 0) {
+        int c = 0; // count of triangles for each batch
+        if (count >= MAX_TRIANGLE_COUNT) {
+            c = MAX_TRIANGLE_COUNT;
+        }
+        else { // smaller remaining batch
+            c = count;
+        }
+        GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, 3*c*sizeof(Triangle_Vertex), _triangles_vertices.data()+offset));
+        GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3*c));
+        offset += 3*c;
+        count -= c;
+    }
+
+    _triangles_vertices.clear();
+}

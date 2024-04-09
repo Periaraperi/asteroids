@@ -28,6 +28,11 @@ struct Window_Settings {
     {}
 };
 
+struct Triangle_Vertex {
+    glm::vec2 pos;
+    glm::vec4 color;
+};
+
 class Graphics {
 public:
     Graphics(const Window_Settings& settings);
@@ -37,8 +42,9 @@ public:
     void set_clear_color(float r, float g, float b, float a);
     void clear_buffer();
     void swap_buffers();
+    void flush();
 
-    // SDL Window releated functions
+    // SDL Window related functions
     void set_window_size(int w, int h);
     std::pair<int,int> get_window_size() const;
 
@@ -54,6 +60,9 @@ public:
     void wireframe(bool wireframe);
 
     // drawing functions
+    void draw_triangle_batched(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color); // for batching
+    void draw_triangle_non_batched(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color);
+                                                                                   
     void draw_triangle(const glm::mat4& transform, glm::vec4 color);
     void draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color);
     void draw_polygon(const std::vector<glm::vec2>& poly_points, glm::vec4 color);
@@ -66,6 +75,11 @@ private:
     void cleanup();
 
     void set_viewport();
+
+    // render functions that do actual draw calls on batched data
+    void render_triangles();
+    std::vector<Triangle_Vertex> _triangles_vertices; // must always be divisible by 3
+
 private:
     SDL_Window* _window;
     SDL_GLContext _context;

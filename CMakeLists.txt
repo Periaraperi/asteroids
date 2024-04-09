@@ -27,8 +27,27 @@ add_executable(asteroids ${SRCS})
 target_compile_features(asteroids PRIVATE cxx_std_17)
 target_compile_options(asteroids PRIVATE -Wall -Wextra -Wpedantic -Wshadow)
 
+add_executable(exp 
+    ${SRC_DIR}/graphics.cpp
+    ${SRC_DIR}/opengl_errors.cpp
+    ${SRC_DIR}/input_manager.cpp
+    ${SRC_DIR}/shader.cpp
+    ${SRC_DIR}/physics.cpp
+    ${SRC_DIR}/game.cpp
+    ${SRC_DIR}/ship.cpp
+    ${SRC_DIR}/asteroid.cpp
+    ${SRC_DIR}/bullet.cpp
+    ${SRC_DIR}/exp.cpp
+    experiment_batch_render.cpp
+
+    ${EXTERNAL_INCLUDE_DIR}/glad/src/glad.c
+)
+target_compile_features(exp PRIVATE cxx_std_17)
+target_compile_options(exp PRIVATE -Wall -Wextra -Wpedantic -Wshadow)
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(asteroids PRIVATE PERIA_DEBUG)
+    target_compile_definitions(exp PRIVATE PERIA_DEBUG)
 endif()
 
 find_package(SDL2 REQUIRED)
@@ -45,3 +64,13 @@ target_include_directories(asteroids
     ${EXTERNAL_INCLUDE_DIR}/glm/
 )
 target_link_libraries(asteroids PRIVATE ${SDL2_LIBRARIES})
+
+target_include_directories(exp 
+    PRIVATE 
+    ${SDL2_INCLUDE_DIRS} 
+    ${SRC_DIR}
+
+    ${EXTERNAL_INCLUDE_DIR}/glad/include
+    ${EXTERNAL_INCLUDE_DIR}/glm/
+)
+target_link_libraries(exp PRIVATE ${SDL2_LIBRARIES})
