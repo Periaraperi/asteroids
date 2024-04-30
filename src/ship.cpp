@@ -73,14 +73,14 @@ void Ship::update(Graphics& g, Input_Manager& im, float dt)
 
 }
 
-void Ship::draw(Graphics& g)
+void Ship::draw(Graphics& g) const
 {
-    g.draw_polygon(_ship_model, Transform::model(_transform.pos, _transform.scale, _transform.angle), {1.0f, 0.0f, 0.0f, 1.0f});
+    g.draw_polygon(get_points_in_world(), {1.0f, 0.0f, 0.0f, 1.0f});
 }
 
 // returns world positions for polygon points
 // for physics.
-std::vector<glm::vec2> Ship::get_points_in_world()
+std::vector<glm::vec2> Ship::get_points_in_world() const
 {
     std::vector<glm::vec2> vec; vec.reserve(_ship_model.size());
     auto transform = Transform::model(_transform.pos, _transform.scale, _transform.angle);
@@ -92,7 +92,7 @@ std::vector<glm::vec2> Ship::get_points_in_world()
     return vec;
 }
 
-glm::vec2 Ship::get_direction_vector()
+glm::vec2 Ship::get_direction_vector() const
 {
     return {std::cos(glm::radians(_transform.angle+90.0f)), std::sin(glm::radians(_transform.angle+90.0f))};
 }

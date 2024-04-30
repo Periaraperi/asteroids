@@ -94,6 +94,7 @@ void Game::render()
             }
 
             _ship->draw(_graphics);
+
             for (const auto& b:_bullets) {
                 b.draw(_graphics);
             }
@@ -105,9 +106,12 @@ void Game::render()
         case Game_State::WON:
         {
             _graphics.draw_circle({w*0.5f, h*0.5f}, 100.0f, {0.0f, 0.0f, 0.0f, 1.0f});
+            _graphics.draw_circle({w*0.5f + 200, h*0.5f}, 50.0f, {0.0f, 1.0f, 0.0f, 1.0f});
+            _graphics.draw_circle({w*0.5f - 200, h*0.5f}, 50.0f, {1.0f, 0.0f, 0.0f, 1.0f});
         } break;
     }
 
+    _graphics.flush();
     _graphics.swap_buffers();
 }
 

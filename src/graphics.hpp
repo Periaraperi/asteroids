@@ -38,6 +38,13 @@ struct Rect_Vertex {
     glm::vec4 color;
 };
 
+struct Circle_Vertex {
+    glm::vec2 pos;
+    glm::vec2 center;
+    glm::vec4 color;
+    float radius;
+};
+
 class Graphics {
 public:
     Graphics(const Window_Settings& settings);
@@ -64,17 +71,17 @@ public:
     void vsync(bool vsync);
     void wireframe(bool wireframe);
 
-    // drawing functions
-    void draw_triangle_batched(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color); // for batching
-    void draw_triangle_non_batched(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color);
+    // Drawing functions, these function just batch data. I.E add vertex info to big buffer.
+    // Draw calls happen when we call flush on every frame.
+    
+    void draw_triangle(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color);
                                                                                    
-    void draw_triangle(const glm::mat4& transform, glm::vec4 color);
-    void draw_rect_batched(glm::vec2 pos, glm::vec2 size, glm::vec4 color);
     void draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color);
+
     void draw_polygon(const std::vector<glm::vec2>& poly_points, glm::vec4 color);
-    void draw_polygon(const std::vector<glm::vec2>& points, 
-                      const glm::mat4& transform, glm::vec4 color);
+
     void draw_circle(glm::vec2 center, float radius, glm::vec4 color);
+
     void draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color);
 
 private:
@@ -83,10 +90,15 @@ private:
     void set_viewport();
 
     // render functions that do actual draw calls on batched data
+
     void render_triangles();
-    std::vector<Triangle_Vertex> _triangles_vertices; // must always be divisible by 3
+    std::vector<Triangle_Vertex> _triangles_vertices;
+
     void render_rects();
     std::vector<Rect_Vertex> _rects_vertices;
+
+    void render_circles();
+    std::vector<Circle_Vertex> _circles_vertices;
 
 private:
     SDL_Window* _window;

@@ -5,10 +5,7 @@
 #include <array>
 
 #include "graphics.hpp"
-#include "peria_logger.hpp"
-#include "opengl_errors.hpp"
 
-constexpr float SPEED = 150.0f;
 std::array<float, 3> get_speed {
     150.0f,
     100.0f,
@@ -104,7 +101,7 @@ void Asteroid::update(Graphics& g, float dt)
 
 void Asteroid::draw(Graphics& g) const
 {
-    g.draw_polygon(_asteroid_model, Transform::model(_transform.pos, _transform.scale, _transform.angle), {0.0f, 1.0f, 0.0f, 1.0f});
+    g.draw_polygon(get_points_in_world(), {0.0f, 1.0f, 0.0f, 1.0f});
 }
 
 void Asteroid::explode()
@@ -119,7 +116,7 @@ bool Asteroid::dead() const
 bool Asteroid::empty() const
 { return _asteroid_model.empty(); }
 
-std::vector<glm::vec2> Asteroid::get_points_in_world()
+std::vector<glm::vec2> Asteroid::get_points_in_world() const
 {
     std::vector<glm::vec2> vec; vec.reserve(_asteroid_model.size());
     auto transform = Transform::model(_transform.pos, _transform.scale, _transform.angle);

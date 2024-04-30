@@ -34,7 +34,7 @@ public:
     void explode();
 
     [[nodiscard]]
-    std::vector<glm::vec2> get_points_in_world();
+    std::vector<glm::vec2> get_points_in_world() const;
 
     [[nodiscard]]
     std::vector<Asteroid> split();

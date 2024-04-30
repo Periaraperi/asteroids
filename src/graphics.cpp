@@ -6,7 +6,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
-#include <array>
 
 #include "opengl_errors.hpp"
 #include "peria_logger.hpp"
@@ -21,6 +20,12 @@ uint32_t rect_batch_vao;
 uint32_t rect_batch_vbo; // dynamic buffer
 uint32_t rect_batch_ibo; // index buffer for rects
 std::vector<uint32_t> rect_indices; // store indices here
+
+constexpr int MAX_CIRCLE_COUNT = 4096;
+uint32_t circle_batch_vao;
+uint32_t circle_batch_vbo; // dynamic buffer
+uint32_t circle_batch_ibo; // index buffer for rects
+std::vector<uint32_t> circle_indices; // store indices here
 
 void init_triangle_batch_data()
 {
@@ -82,6 +87,59 @@ void init_rect_batch_data()
     PERIA_LOG("INIT RECT BATCH DATA");
 }
 
+void init_circle_batch_data()
+{
+    GL_CALL(glCreateVertexArrays(1, &circle_batch_vao));
+    GL_CALL(glBindVertexArray(circle_batch_vao));
+    
+    GL_CALL(glCreateBuffers(1, &circle_batch_vbo));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, circle_batch_vbo));
+    // make buffer dynamic since we will update data frequently
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Circle_Vertex)*MAX_CIRCLE_COUNT*4, nullptr, GL_DYNAMIC_DRAW));
+
+    std::size_t offset = 0;
+
+    // position
+    GL_CALL(glEnableVertexAttribArray(0));
+    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Circle_Vertex), (const void*)offset));
+    offset += sizeof(Circle_Vertex::pos);
+    
+    // center
+    GL_CALL(glEnableVertexAttribArray(1));
+    GL_CALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Circle_Vertex), (const void*)offset));
+    offset += sizeof(Circle_Vertex::center);
+
+    // color
+    GL_CALL(glEnableVertexAttribArray(2));
+    GL_CALL(glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Circle_Vertex), (const void*)offset));
+    offset += sizeof(Circle_Vertex::color);
+
+    // radius
+    GL_CALL(glEnableVertexAttribArray(3));
+    GL_CALL(glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Circle_Vertex), (const void*)offset));
+    offset += sizeof(Circle_Vertex::radius);
+
+    // index buffer
+    std::size_t count = 4*6*MAX_CIRCLE_COUNT;
+    circle_indices.reserve(count);
+    for (std::size_t i{}; i<count; i += 4) {
+        circle_indices.push_back(i);
+        circle_indices.push_back(i+1);
+        circle_indices.push_back(i+2);
+
+        circle_indices.push_back(i);
+        circle_indices.push_back(i+2);
+        circle_indices.push_back(i+3);
+    }
+    
+    GL_CALL(glCreateBuffers(1, &circle_batch_ibo));
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, circle_batch_ibo));
+
+    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, circle_indices.size()*sizeof(uint32_t), circle_indices.data(), GL_STATIC_DRAW));
+
+    PERIA_LOG("INIT CIRCLE BATCH DATA");
+}
+
 void clean_batch_data()
 {
     GL_CALL(glDeleteBuffers(1, &triangle_batch_vbo));
@@ -90,6 +148,10 @@ void clean_batch_data()
     GL_CALL(glDeleteBuffers(1, &rect_batch_vbo));
     GL_CALL(glDeleteBuffers(1, &rect_batch_ibo));
     GL_CALL(glDeleteVertexArrays(1, &rect_batch_vao));
+
+    GL_CALL(glDeleteBuffers(1, &circle_batch_vbo));
+    GL_CALL(glDeleteBuffers(1, &circle_batch_ibo));
+    GL_CALL(glDeleteVertexArrays(1, &circle_batch_vao));
 
     PERIA_LOG("CLEANED BATCH DATA");
 }
@@ -153,6 +215,9 @@ Graphics::Graphics(const Window_Settings& settings)
 
     _rects_vertices.reserve(MAX_RECT_COUNT*4);
     init_rect_batch_data();
+
+    _circles_vertices.reserve(MAX_CIRCLE_COUNT*4);
+    init_circle_batch_data();
 
     PERIA_LOG("Graphics ctor()");
 }
@@ -265,253 +330,9 @@ void Graphics::wireframe(bool wireframe)
 }
 
 // ======================================================================= Drawing functions =============================================================
-// TODO optimize drawing renderer. Currently we create and destroy vao/vbo each frame and call drawCall on every object
 
-// I use this only for triangle
-// probably will rewrite renderer for
-// the N-th time xD
-
-struct Polygon_Vertex {
-    glm::vec2 pos;
-    glm::vec4 color;
-};
-
-void Graphics::draw_triangle(const glm::mat4& transform, glm::vec4 color)
-{
-    uint32_t vao;
-    GL_CALL(glCreateVertexArrays(1, &vao));
-    GL_CALL(glBindVertexArray(vao));
-    
-    std::vector<Triangle_Vertex> vertex_data {
-        {{-0.5f, -0.5f}, color},
-        {{ 0.5f, -0.5f}, color}, 
-        {{ 0.0f,  1.0f}, color}
-    };
-    
-    uint32_t vbo;
-    GL_CALL(glCreateBuffers(1, &vbo));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Triangle_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
-
-    GL_CALL(glEnableVertexAttribArray(0));
-    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Triangle_Vertex), 0));
-
-    GL_CALL(glEnableVertexAttribArray(1));
-    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Triangle_Vertex), (const void*) sizeof(Triangle_Vertex::pos)));
-
-    _triangle_shader->bind();
-    _triangle_shader->set_mat4("u_mvp", _projection*transform);
-    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
-
-    // clean
-    GL_CALL(glDeleteBuffers(1, &vbo));
-    GL_CALL(glDeleteVertexArrays(1, &vao));
-}
-
-void Graphics::draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color)
-{
-    
-    uint32_t vao;
-    GL_CALL(glCreateVertexArrays(1, &vao));
-    GL_CALL(glBindVertexArray(vao));
-
-    // use poly vertex for quad
-    std::vector<Polygon_Vertex> vertex_data {
-        {{pos.x,        pos.y-size.y}, color},
-        {{pos.x,        pos.y       }, color},
-        {{pos.x+size.x, pos.y       }, color},
-        {{pos.x+size.x, pos.y-size.y}, color}
-    };
-
-    std::array<uint32_t, 6> index_data {0,1,2, 0,2,3};
-
-    uint32_t vbo;
-    GL_CALL(glCreateBuffers(1, &vbo));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Polygon_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
-
-    uint32_t ibo;
-    GL_CALL(glCreateBuffers(1, &ibo));
-    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
-    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)*index_data.size(), index_data.data(), GL_STATIC_DRAW));
-
-    GL_CALL(glEnableVertexAttribArray(0));
-    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), 0));
-
-    GL_CALL(glEnableVertexAttribArray(1));
-    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), (const void*) sizeof(Polygon_Vertex::pos)));
-    
-    _triangle_shader->bind();
-    _triangle_shader->set_mat4("u_mvp", _projection);
-    GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0));
-
-    // clean
-    GL_CALL(glDeleteBuffers(1, &vbo));
-    GL_CALL(glDeleteBuffers(1, &ibo));
-    GL_CALL(glDeleteVertexArrays(1, &vao));
-}
-
-
-// draw polygon without transform.
-// points are in world space
-void Graphics::draw_polygon(const std::vector<glm::vec2>& points, glm::vec4 color)
-{
-    PERIA_ASSERT(points.size() >= 3, "draw_polygon() needs at least 3 points");
-    if (points.size() < 3) return;
-
-    uint32_t vao;
-    GL_CALL(glCreateVertexArrays(1, &vao));
-    GL_CALL(glBindVertexArray(vao));
-
-    std::vector<Polygon_Vertex> vertex_data(points.size());
-    for (std::size_t i{}; i<vertex_data.size(); ++i) {
-        vertex_data[i].pos = points[i];
-        vertex_data[i].color = color;
-    }
-
-    std::vector<uint32_t> index_data;
-    index_data.reserve((points.size()-2)*3);
-
-    for (std::size_t i=1; i<=points.size()-2; ++i) {
-        index_data.push_back(0); // 0-th point is the start
-        index_data.push_back(i);
-        index_data.push_back(i+1);
-    }
-    
-    uint32_t vbo;
-    GL_CALL(glCreateBuffers(1, &vbo));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Polygon_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
-
-    uint32_t ibo;
-    GL_CALL(glCreateBuffers(1, &ibo));
-    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
-    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)*index_data.size(), index_data.data(), GL_STATIC_DRAW));
-
-
-    GL_CALL(glEnableVertexAttribArray(0));
-    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), 0));
-
-    GL_CALL(glEnableVertexAttribArray(1));
-    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), (const void*) sizeof(Polygon_Vertex::pos)));
-
-    // current implementation of triangle shader works for polygons.
-    // we just create polygon with triangles, using indexed draw call
-    _triangle_shader->bind();
-    // since we pass points in world space. No need for model matrix
-    _triangle_shader->set_mat4("u_mvp", _projection);
-
-    GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0)); // indexed draw with triangles
-
-    // clean
-    GL_CALL(glDeleteBuffers(1, &vbo));
-    GL_CALL(glDeleteBuffers(1, &ibo));
-    GL_CALL(glDeleteVertexArrays(1, &vao));
-}
-
-// draw polygon with transform.
-// points are normalized
-void Graphics::draw_polygon(const std::vector<glm::vec2>& points, 
-                            const glm::mat4& transform, glm::vec4 color)
-{
-    PERIA_ASSERT(points.size() >= 3, "draw_polygon() needs at least 3 points");
-    if (points.size() < 3) return;
-
-    uint32_t vao;
-    GL_CALL(glCreateVertexArrays(1, &vao));
-    GL_CALL(glBindVertexArray(vao));
-
-    std::vector<Polygon_Vertex> vertex_data(points.size());
-    for (std::size_t i{}; i<vertex_data.size(); ++i) {
-        vertex_data[i].pos = points[i];
-        vertex_data[i].color = color;
-    }
-
-    std::vector<uint32_t> index_data;
-    index_data.reserve((points.size()-2)*3);
-
-    for (std::size_t i=1; i<=points.size()-2; ++i) {
-        index_data.push_back(0); // 0-th point is the start
-        index_data.push_back(i);
-        index_data.push_back(i+1);
-    }
-    
-    uint32_t vbo;
-    GL_CALL(glCreateBuffers(1, &vbo));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Polygon_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
-
-    uint32_t ibo;
-    GL_CALL(glCreateBuffers(1, &ibo));
-    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
-    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)*index_data.size(), index_data.data(), GL_STATIC_DRAW));
-
-
-    GL_CALL(glEnableVertexAttribArray(0));
-    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), 0));
-
-    GL_CALL(glEnableVertexAttribArray(1));
-    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), (const void*) sizeof(Polygon_Vertex::pos)));
-
-    // current implementation of triangle shader works for polygons.
-    // we just create polygon with triangles, using indexed draw call
-    _triangle_shader->bind();
-    // since we pass points in world space. No need for model matrix
-    _triangle_shader->set_mat4("u_mvp", _projection*transform);
-
-    GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0)); // indexed draw with triangles
-
-    // clean
-    GL_CALL(glDeleteBuffers(1, &vbo));
-    GL_CALL(glDeleteBuffers(1, &ibo));
-    GL_CALL(glDeleteVertexArrays(1, &vao));
-}
-
-void Graphics::draw_circle(glm::vec2 center, float radius, glm::vec4 color)
-{
-    uint32_t vao;
-    GL_CALL(glCreateVertexArrays(1, &vao));
-    GL_CALL(glBindVertexArray(vao));
-
-    // use poly vertex for quad
-    std::vector<Polygon_Vertex> vertex_data {
-        {{center.x-radius, center.y-radius}, color},
-        {{center.x-radius, center.y+radius}, color},
-        {{center.x+radius, center.y+radius}, color},
-        {{center.x+radius, center.y-radius}, color},
-    };
-
-    std::array<uint32_t, 6> index_data {0,1,2, 0,2,3};
-
-    uint32_t vbo;
-    GL_CALL(glCreateBuffers(1, &vbo));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Polygon_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
-
-    uint32_t ibo;
-    GL_CALL(glCreateBuffers(1, &ibo));
-    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
-    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)*index_data.size(), index_data.data(), GL_STATIC_DRAW));
-
-    GL_CALL(glEnableVertexAttribArray(0));
-    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), 0));
-
-    GL_CALL(glEnableVertexAttribArray(1));
-    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Polygon_Vertex), (const void*) sizeof(Polygon_Vertex::pos)));
-    
-    _circle_shader->bind();
-    _circle_shader->set_mat4("u_mvp", _projection);
-    _circle_shader->set_vec2("u_center", center);
-    _circle_shader->set_float("u_radius", radius);
-    GL_CALL(glDrawElements(GL_TRIANGLES, index_data.size(), GL_UNSIGNED_INT, 0));
-
-
-    // clean
-    GL_CALL(glDeleteBuffers(1, &vbo));
-    GL_CALL(glDeleteBuffers(1, &ibo));
-    GL_CALL(glDeleteVertexArrays(1, &vao));
-}
-
+// TODO: Need to optimize line rendering and make it better
+// will do for now, since I use this for debugging stuff
 void Graphics::draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color)
 {
     uint32_t vao;
@@ -542,8 +363,19 @@ void Graphics::draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color)
     GL_CALL(glDeleteVertexArrays(1, &vao));
 }
 
+// poly_points in world space
+void Graphics::draw_polygon(const std::vector<glm::vec2>& poly_points, glm::vec4 color)
+{
+    PERIA_ASSERT(poly_points.size() >= 3, "poly must have at least 3 points");
+    for (std::size_t i=1; i<poly_points.size()-1; ++i) {
+        _triangles_vertices.push_back({poly_points[0],   color});
+        _triangles_vertices.push_back({poly_points[i],   color});
+        _triangles_vertices.push_back({poly_points[i+1], color});
+    }
+}
+
 // triangle points in world position in clockwise order
-void Graphics::draw_triangle_batched(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color)
+void Graphics::draw_triangle(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color)
 {
     _triangles_vertices.push_back({p1, color});
     _triangles_vertices.push_back({p2, color});
@@ -552,7 +384,7 @@ void Graphics::draw_triangle_batched(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, g
 
 // rect points in world position in clockwise order
 // pos -> rect's top left corner coordinates
-void Graphics::draw_rect_batched(glm::vec2 pos, glm::vec2 size, glm::vec4 color)
+void Graphics::draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color)
 {
     _rects_vertices.push_back({{pos.x, pos.y-size.y},        color});
     _rects_vertices.push_back({{pos.x, pos.y},               color});
@@ -560,43 +392,22 @@ void Graphics::draw_rect_batched(glm::vec2 pos, glm::vec2 size, glm::vec4 color)
     _rects_vertices.push_back({{pos.x+size.x, pos.y-size.y}, color});
 }
 
-void Graphics::draw_triangle_non_batched(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color)
+// center and radius in world position
+void Graphics::draw_circle(glm::vec2 center, float radius, glm::vec4 color)
 {
-    uint32_t vao;
-    GL_CALL(glCreateVertexArrays(1, &vao));
-    GL_CALL(glBindVertexArray(vao));
-    
-    std::vector<Triangle_Vertex> vertex_data {
-        {p1, color},
-        {p2, color}, 
-        {p3, color}
-    };
-    
-    uint32_t vbo;
-    GL_CALL(glCreateBuffers(1, &vbo));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Triangle_Vertex)*vertex_data.size(), vertex_data.data(), GL_STATIC_DRAW));
-
-    GL_CALL(glEnableVertexAttribArray(0));
-    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Triangle_Vertex), 0));
-
-    GL_CALL(glEnableVertexAttribArray(1));
-    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Triangle_Vertex), (const void*) sizeof(Triangle_Vertex::pos)));
-
-    _triangle_shader->bind();
-    _triangle_shader->set_mat4("u_mvp", _projection);
-    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3));
-
-    // clean
-    GL_CALL(glDeleteBuffers(1, &vbo));
-    GL_CALL(glDeleteVertexArrays(1, &vao));
-
+    _circles_vertices.push_back({{center.x-radius, center.y-radius}, center, color, radius});
+    _circles_vertices.push_back({{center.x-radius, center.y+radius}, center, color, radius});
+    _circles_vertices.push_back({{center.x+radius, center.y+radius}, center, color, radius});
+    _circles_vertices.push_back({{center.x+radius, center.y-radius}, center, color, radius});
 }
 
+// should be called on each frame only once before swapping buffers.
+// makes actual GL draw calls on batched data
 void Graphics::flush()
 {
     render_triangles();
     render_rects();
+    render_circles();
 }
 
 void Graphics::render_triangles()
@@ -657,4 +468,35 @@ void Graphics::render_rects()
     }
 
     _rects_vertices.clear();
+}
+
+void Graphics::render_circles()
+{
+    if (_circles_vertices.empty()) return;
+
+    int count = _circles_vertices.size() / 4; // overall, this many rects
+    std::size_t offset = 0; // offset inside _circles
+
+    GL_CALL(glBindVertexArray(circle_batch_vao));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, circle_batch_vbo));
+
+    _circle_shader->bind();
+    _circle_shader->set_mat4("u_mvp", _projection);
+    
+    while (count > 0) {
+        int c = 0; // count of rects for each batch
+        if (count >= MAX_CIRCLE_COUNT) {
+            c = MAX_CIRCLE_COUNT;
+        }
+        else { // smaller remaining batch
+            c = count;
+        }
+
+        GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, 4*c*sizeof(Circle_Vertex), _circles_vertices.data()+offset));
+        GL_CALL(glDrawElements(GL_TRIANGLES, c*6, GL_UNSIGNED_INT, nullptr));
+        offset += 4*c;
+        count -= c;
+    }
+
+    _circles_vertices.clear();
 }
