@@ -64,9 +64,19 @@ void Exp::render()
     _graphics.clear_buffer();
     // DRAW CALLS HERE!
     int x = 50;
-    for (int i{}; i<1000000; ++i) {
+    for (int i{}; i<10000; ++i) {
         _graphics.draw_triangle_batched({100.0f+i*x, 100.0f}, {100.0f+i*x, 200.0f}, {120.0f+i*x, 100.0f}, {1.0f, 0.0f, 1.0f, 1.0f});
     }
+
+    glm::vec2 rect_size = {50, 70};
+    for (int i{}; i<10000; ++i) {
+        _graphics.draw_rect_batched({100.0f+i*(x+rect_size.x), 600.0f}, rect_size, {0.70f, 0.2f, 0.3f, 1.0f});
+    }
+
+    //_graphics.draw_rect_batched({100.0f, 600.0f}, rect_size, {0.70f, 0.2f, 0.3f, 1.0f});
+    //_graphics.draw_rect_batched({500.0f, 600.0f}, rect_size, {0.70f, 0.2f, 0.3f, 1.0f});
+    //_graphics.draw_rect_batched({100.0f, 900.0f}, rect_size, {0.70f, 0.2f, 0.3f, 1.0f});
+
 
     //for (int i{}; i<10000; ++i) {
     //    _graphics.draw_triangle_non_batched({100.0f+i*x, 100.0f}, {100.0f+i*x, 200.0f}, {120.0f+i*x, 100.0f}, {1.0f, 0.0f, 1.0f, 1.0f});

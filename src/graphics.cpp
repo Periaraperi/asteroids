@@ -16,6 +16,12 @@ constexpr int MAX_TRIANGLE_COUNT = 4096; // this many triangles per batch
 uint32_t triangle_batch_vao;
 uint32_t triangle_batch_vbo; // dynamic buffer
 
+constexpr int MAX_RECT_COUNT = 4096;
+uint32_t rect_batch_vao;
+uint32_t rect_batch_vbo; // dynamic buffer
+uint32_t rect_batch_ibo; // index buffer for rects
+std::vector<uint32_t> rect_indices; // store indices here
+
 void init_triangle_batch_data()
 {
     GL_CALL(glCreateVertexArrays(1, &triangle_batch_vao));
@@ -34,13 +40,57 @@ void init_triangle_batch_data()
     GL_CALL(glEnableVertexAttribArray(1));
     GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Triangle_Vertex), (const void*)sizeof(glm::vec2)));
 
-    PERIA_LOG("INIT BATCH DATA");
+    PERIA_LOG("INIT TRIANGLE BATCH DATA");
+}
+
+void init_rect_batch_data()
+{
+    GL_CALL(glCreateVertexArrays(1, &rect_batch_vao));
+    GL_CALL(glBindVertexArray(rect_batch_vao));
+    
+    GL_CALL(glCreateBuffers(1, &rect_batch_vbo));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, rect_batch_vbo));
+    // make buffer dynamic since we will update data frequently
+    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Rect_Vertex)*MAX_RECT_COUNT*4, nullptr, GL_DYNAMIC_DRAW));
+
+    // position
+    GL_CALL(glEnableVertexAttribArray(0));
+    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Rect_Vertex), (const void*)0));
+
+    // color
+    GL_CALL(glEnableVertexAttribArray(1));
+    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Rect_Vertex), (const void*)sizeof(glm::vec2)));
+
+    // index buffer
+    std::size_t count = 4*6*MAX_RECT_COUNT;
+    rect_indices.reserve(count);
+    for (std::size_t i{}; i<count; i += 4) {
+        rect_indices.push_back(i);
+        rect_indices.push_back(i+1);
+        rect_indices.push_back(i+2);
+
+        rect_indices.push_back(i);
+        rect_indices.push_back(i+2);
+        rect_indices.push_back(i+3);
+    }
+    
+    GL_CALL(glCreateBuffers(1, &rect_batch_ibo));
+    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rect_batch_ibo));
+
+    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, rect_indices.size()*sizeof(uint32_t), rect_indices.data(), GL_STATIC_DRAW));
+
+    PERIA_LOG("INIT RECT BATCH DATA");
 }
 
 void clean_batch_data()
 {
     GL_CALL(glDeleteBuffers(1, &triangle_batch_vbo));
     GL_CALL(glDeleteVertexArrays(1, &triangle_batch_vao));
+
+    GL_CALL(glDeleteBuffers(1, &rect_batch_vbo));
+    GL_CALL(glDeleteBuffers(1, &rect_batch_ibo));
+    GL_CALL(glDeleteVertexArrays(1, &rect_batch_vao));
+
     PERIA_LOG("CLEANED BATCH DATA");
 }
 
@@ -100,6 +150,9 @@ Graphics::Graphics(const Window_Settings& settings)
     // batching related stuff
     _triangles_vertices.reserve(MAX_TRIANGLE_COUNT*3);
     init_triangle_batch_data();
+
+    _rects_vertices.reserve(MAX_RECT_COUNT*4);
+    init_rect_batch_data();
 
     PERIA_LOG("Graphics ctor()");
 }
@@ -497,6 +550,16 @@ void Graphics::draw_triangle_batched(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, g
     _triangles_vertices.push_back({p3, color});
 }
 
+// rect points in world position in clockwise order
+// pos -> rect's top left corner coordinates
+void Graphics::draw_rect_batched(glm::vec2 pos, glm::vec2 size, glm::vec4 color)
+{
+    _rects_vertices.push_back({{pos.x, pos.y-size.y},        color});
+    _rects_vertices.push_back({{pos.x, pos.y},               color});
+    _rects_vertices.push_back({{pos.x+size.x, pos.y},        color});
+    _rects_vertices.push_back({{pos.x+size.x, pos.y-size.y}, color});
+}
+
 void Graphics::draw_triangle_non_batched(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color)
 {
     uint32_t vao;
@@ -533,10 +596,13 @@ void Graphics::draw_triangle_non_batched(glm::vec2 p1, glm::vec2 p2, glm::vec2 p
 void Graphics::flush()
 {
     render_triangles();
+    render_rects();
 }
 
 void Graphics::render_triangles()
 {
+    if (_triangles_vertices.empty()) return;
+
     int count = _triangles_vertices.size() / 3; // overall, this many triangles
     std::size_t offset = 0; // offset inside _triangles
 
@@ -560,4 +626,35 @@ void Graphics::render_triangles()
     }
 
     _triangles_vertices.clear();
+}
+
+void Graphics::render_rects()
+{
+    if (_rects_vertices.empty()) return;
+
+    int count = _rects_vertices.size() / 4; // overall, this many rects
+    std::size_t offset = 0; // offset inside _rects
+
+    GL_CALL(glBindVertexArray(rect_batch_vao));
+    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, rect_batch_vbo));
+    // just reuse tri shader
+    _triangle_shader->bind();
+    _triangle_shader->set_mat4("u_mvp", _projection);
+    
+    while (count > 0) {
+        int c = 0; // count of rects for each batch
+        if (count >= MAX_RECT_COUNT) {
+            c = MAX_RECT_COUNT;
+        }
+        else { // smaller remaining batch
+            c = count;
+        }
+
+        GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, 4*c*sizeof(Rect_Vertex), _rects_vertices.data()+offset));
+        GL_CALL(glDrawElements(GL_TRIANGLES, c*6, GL_UNSIGNED_INT, nullptr));
+        offset += 4*c;
+        count -= c;
+    }
+
+    _rects_vertices.clear();
 }

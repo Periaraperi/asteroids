@@ -33,6 +33,11 @@ struct Triangle_Vertex {
     glm::vec4 color;
 };
 
+struct Rect_Vertex {
+    glm::vec2 pos;
+    glm::vec4 color;
+};
+
 class Graphics {
 public:
     Graphics(const Window_Settings& settings);
@@ -64,6 +69,7 @@ public:
     void draw_triangle_non_batched(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color);
                                                                                    
     void draw_triangle(const glm::mat4& transform, glm::vec4 color);
+    void draw_rect_batched(glm::vec2 pos, glm::vec2 size, glm::vec4 color);
     void draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color);
     void draw_polygon(const std::vector<glm::vec2>& poly_points, glm::vec4 color);
     void draw_polygon(const std::vector<glm::vec2>& points, 
@@ -79,6 +85,8 @@ private:
     // render functions that do actual draw calls on batched data
     void render_triangles();
     std::vector<Triangle_Vertex> _triangles_vertices; // must always be divisible by 3
+    void render_rects();
+    std::vector<Rect_Vertex> _rects_vertices;
 
 private:
     SDL_Window* _window;
