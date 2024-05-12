@@ -10,7 +10,6 @@ enum class Mouse_Button {
     RIGHT
 };
 
-// singleton class responsible for handling key events and mouse events
 class Input_Manager {
 public:
     Input_Manager();
