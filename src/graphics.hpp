@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <utility>
 #include <string>
 #include <memory>
@@ -45,6 +46,13 @@ struct Circle_Vertex {
     float radius;
 };
 
+struct Character {
+    uint32_t tex_id;
+    long advance;
+    glm::ivec2 size;
+    glm::ivec2 bearing;
+};
+
 class Graphics {
 public:
     Graphics(const Window_Settings& settings);
@@ -84,6 +92,8 @@ public:
 
     void draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color);
 
+    void draw_text(const std::string& text, glm::vec2 pos, glm::vec3 color, float scale=1.0f);
+
 private:
     void cleanup();
 
@@ -114,6 +124,9 @@ private:
     std::unique_ptr<Shader> _triangle_shader;
     std::unique_ptr<Shader> _circle_shader;
     std::unique_ptr<Shader> _line_shader;
+    std::unique_ptr<Shader> _text_shader;
+    
+    std::unordered_map<char, Character> _char_map;
 
 public:
     Graphics(const Graphics&) = delete;

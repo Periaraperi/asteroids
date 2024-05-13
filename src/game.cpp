@@ -85,7 +85,7 @@ void Game::render()
     switch(_state) {
         case Game_State::MAIN_MENU:
         {
-            _graphics.draw_circle({w*0.5f, h*0.5f}, 100.0f, {0.34f, 0.52f, 0.22f, 1.0f});
+            _graphics.draw_text("ASTEROIDS", {w*0.5f-120, h*0.5f}, {0.0f, 0.0f, 0.0f});
         } break;
         case Game_State::PLAYING:
         {
@@ -101,13 +101,11 @@ void Game::render()
         } break;
         case Game_State::DEAD:
         {
-            _graphics.draw_circle({w*0.5f, h*0.5f}, 100.0f, {0.84f, 0.52f, 0.42f, 1.0f});
+            _graphics.draw_text("YOU DIED", {w*0.5f-120, h*0.5f}, {0.0f, 0.0f, 0.0f});
         } break;
         case Game_State::WON:
         {
-            _graphics.draw_circle({w*0.5f, h*0.5f}, 100.0f, {0.0f, 0.0f, 0.0f, 1.0f});
-            _graphics.draw_circle({w*0.5f + 200, h*0.5f}, 50.0f, {0.0f, 1.0f, 0.0f, 1.0f});
-            _graphics.draw_circle({w*0.5f - 200, h*0.5f}, 50.0f, {1.0f, 0.0f, 0.0f, 1.0f});
+            _graphics.draw_text("YOU WON", {w*0.5f-120, h*0.5f}, {0.0f, 0.0f, 0.0f});
         } break;
     }
 

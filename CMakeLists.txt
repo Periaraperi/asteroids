@@ -36,6 +36,11 @@ if (${SDL2_FOUND})
     message(STATUS "SDL2 Package Found")
 endif()
 
+find_package(Freetype REQUIRED)
+if (${FREETYPE_FOUND})
+    message(STATUS "Freetype Package Found")
+endif()
+
 target_include_directories(asteroids 
     PRIVATE 
     ${SDL2_INCLUDE_DIRS} 
@@ -43,5 +48,6 @@ target_include_directories(asteroids
 
     ${EXTERNAL_INCLUDE_DIR}/glad/include
     ${EXTERNAL_INCLUDE_DIR}/glm/
+    ${FREETYPE_INCLUDE_DIRS}
 )
-target_link_libraries(asteroids PRIVATE ${SDL2_LIBRARIES})
+target_link_libraries(asteroids PRIVATE ${SDL2_LIBRARIES} ${FREETYPE_LIBRARIES})

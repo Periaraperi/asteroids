@@ -3,9 +3,13 @@
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <vector>
+#include <array>
 
 #include "opengl_errors.hpp"
 #include "peria_logger.hpp"
@@ -26,6 +30,9 @@ uint32_t circle_batch_vao;
 uint32_t circle_batch_vbo; // dynamic buffer
 uint32_t circle_batch_ibo; // index buffer for rects
 std::vector<uint32_t> circle_indices; // store indices here
+
+uint32_t text_vao;
+uint32_t text_vbo;
 
 void init_triangle_batch_data()
 {
@@ -205,9 +212,14 @@ Graphics::Graphics(const Window_Settings& settings)
     // vsync on by default
     vsync(true);
 
+    // enable blending
+    GL_CALL(glEnable(GL_BLEND));
+    GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+
     _triangle_shader = std::make_unique<Shader>("res/shaders/tri_vert.glsl", "res/shaders/tri_frag.glsl");
     _circle_shader = std::make_unique<Shader>("res/shaders/circle_vert.glsl", "res/shaders/circle_frag.glsl");
     _line_shader = std::make_unique<Shader>("res/shaders/line_vert.glsl", "res/shaders/line_frag.glsl");
+    _text_shader = std::make_unique<Shader>("res/shaders/text_vert.glsl", "res/shaders/text_frag.glsl");
 
     // batching related stuff
     _triangles_vertices.reserve(MAX_TRIANGLE_COUNT*3);
@@ -218,6 +230,84 @@ Graphics::Graphics(const Window_Settings& settings)
 
     _circles_vertices.reserve(MAX_CIRCLE_COUNT*4);
     init_circle_batch_data();
+
+    {
+        // font related stuff here
+
+        FT_Library ft;
+        if (FT_Init_FreeType(&ft) != 0) {
+            PERIA_LOG("Failed to load freetype lib");
+            std::exit(EXIT_FAILURE);
+        }
+
+        FT_Face face;
+        if (FT_New_Face(ft, "./res/iosevka-regular.ttf", 0, &face) != 0) {
+            PERIA_LOG("Failed to load font face\n", "Filepath: './res/iosevka-regular.ttf'");
+            std::exit(EXIT_FAILURE);
+        }
+
+        if (FT_Set_Pixel_Sizes(face, 0, 48) != 0) {
+            PERIA_LOG("Failed to set pixel size");
+            std::exit(EXIT_FAILURE);
+        }
+
+        GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+
+        for (uint8_t ch=32; ch<=127; ++ch) {
+            if (FT_Load_Char(face, ch, FT_LOAD_RENDER) != 0) {
+                PERIA_LOG("Failed to FT_Load_Char() on char ", ch);
+                continue;
+            }
+            
+            uint32_t tex;
+            GL_CALL(glGenTextures(1, &tex));
+            GL_CALL(glBindTexture(GL_TEXTURE_2D, tex));
+            GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 
+                                 face->glyph->bitmap.width, 
+                                 face->glyph->bitmap.rows, 
+                                 0, GL_RED, GL_UNSIGNED_BYTE, 
+                                 face->glyph->bitmap.buffer));
+            GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+            GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+            GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+            GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+            Character character = {
+                tex, 
+                face->glyph->advance.x,
+                {face->glyph->bitmap.width, face->glyph->bitmap.rows},
+                {face->glyph->bitmap_left, face->glyph->bitmap_top}
+            };
+
+            _char_map.insert({ch, character});
+        }
+
+        // cleanup
+        if (FT_Done_Face(face) != 0) {
+            PERIA_LOG("Failed on FT_Done_Face()");
+            std::exit(EXIT_FAILURE);
+        }
+        if (FT_Done_FreeType(ft) != 0) {
+            PERIA_LOG("Failed on FT_Done_Freetype()");
+            std::exit(EXIT_FAILURE);
+        }
+
+
+        // gl buffers here
+
+        GL_CALL(glCreateVertexArrays(1, &text_vao));
+        GL_CALL(glBindVertexArray(text_vao));
+        
+        GL_CALL(glCreateBuffers(1, &text_vbo));
+        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, text_vbo));
+        GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(float)*6*4, nullptr, GL_DYNAMIC_DRAW));
+
+        GL_CALL(glEnableVertexAttribArray(0));
+        GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), 0));
+
+        GL_CALL(glEnableVertexAttribArray(1));
+        GL_CALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (const void*)(2*sizeof(float))));
+    }
 
     PERIA_LOG("Graphics ctor()");
 }
@@ -235,8 +325,16 @@ void Graphics::cleanup()
     _triangle_shader.reset();
     _circle_shader.reset();
     _line_shader.reset();
+    _text_shader.reset();
 
     clean_batch_data();
+
+    // clean glyph textures and text buffers
+    for (auto& [k,v]:_char_map) {
+        GL_CALL(glDeleteTextures(1, &v.tex_id));
+    }
+    GL_CALL(glDeleteVertexArrays(1, &text_vao));
+    GL_CALL(glDeleteBuffers(1, &text_vbo));
 
     SDL_GL_DeleteContext(_context);
 
@@ -399,6 +497,48 @@ void Graphics::draw_circle(glm::vec2 center, float radius, glm::vec4 color)
     _circles_vertices.push_back({{center.x-radius, center.y+radius}, center, color, radius});
     _circles_vertices.push_back({{center.x+radius, center.y+radius}, center, color, radius});
     _circles_vertices.push_back({{center.x+radius, center.y-radius}, center, color, radius});
+}
+
+// switch to string_view later
+// very inefficient, this is code from learnOpengl text rendering section
+// want to experiment more with texts, currently remembering things and fucking around
+void Graphics::draw_text(const std::string& text, glm::vec2 pos,
+                         glm::vec3 color, float scale /* = 1.0f*/)
+{
+    GL_CALL(glActiveTexture(GL_TEXTURE0));
+    GL_CALL(glBindVertexArray(text_vao));
+
+    _text_shader->bind();
+    _text_shader->set_vec3("u_color", color);
+    _text_shader->set_mat4("u_mvp", _projection);
+
+    for (const auto& c:text) {
+        auto ch = _char_map[c];
+        float xpos = pos.x + ch.bearing.x*scale;
+        float ypos = pos.y - (ch.size.y - ch.bearing.y)*scale;
+
+        float w = ch.size.x*scale;
+        float h = ch.size.y*scale;
+
+        // pos is already in world space
+        std::array<float, 6*4> verts {
+            xpos,     ypos + h,   0.0f, 0.0f,            
+            xpos,     ypos,       0.0f, 1.0f,
+            xpos + w, ypos,       1.0f, 1.0f,
+
+            xpos,     ypos + h,   0.0f, 0.0f,
+            xpos + w, ypos,       1.0f, 1.0f,
+            xpos + w, ypos + h,   1.0f, 0.0f          
+        };
+
+        GL_CALL(glBindTexture(GL_TEXTURE_2D, ch.tex_id));
+        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, text_vbo));
+        GL_CALL(glad_glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts.data()));
+        
+        GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 6));
+
+        pos.x += (ch.advance >> 6)*scale;
+    }
 }
 
 // should be called on each frame only once before swapping buffers.
