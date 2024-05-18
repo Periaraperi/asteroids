@@ -14,6 +14,7 @@
 #include "opengl_errors.hpp"
 #include "peria_logger.hpp"
 #include "shader.hpp"
+#include "texture.hpp"
 
 constexpr int MAX_TRIANGLE_COUNT = 4096; // this many triangles per batch
 uint32_t triangle_batch_vao;
@@ -233,7 +234,6 @@ Graphics::Graphics(const Window_Settings& settings)
 
     {
         // font related stuff here
-
         FT_Library ft;
         if (FT_Init_FreeType(&ft) != 0) {
             PERIA_LOG("Failed to load freetype lib");
@@ -258,19 +258,20 @@ Graphics::Graphics(const Window_Settings& settings)
                 PERIA_LOG("Failed to FT_Load_Char() on char ", ch);
                 continue;
             }
+
+            auto tex = std::make_shared<Texture>(
+                face->glyph->bitmap.width, 
+                face->glyph->bitmap.rows,
+                face->glyph->bitmap.buffer);
             
-            uint32_t tex;
-            GL_CALL(glGenTextures(1, &tex));
-            GL_CALL(glBindTexture(GL_TEXTURE_2D, tex));
-            GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 
-                                 face->glyph->bitmap.width, 
-                                 face->glyph->bitmap.rows, 
-                                 0, GL_RED, GL_UNSIGNED_BYTE, 
-                                 face->glyph->bitmap.buffer));
-            GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-            GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-            GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-            GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+            //auto& buf = face->glyph->bitmap.buffer;
+            //std::cerr << "Writing bitmap data of char: " << static_cast<char>(ch) << '\n';
+            //for (std::size_t i{}; i<face->glyph->bitmap.rows; ++i) {
+            //    for (std::size_t j{}; j<face->glyph->bitmap.width; ++j) {
+            //        std::cerr << buf[face->glyph->bitmap.width*i + j] << " ";
+            //    }
+            //    std::cerr << '\n';
+            //}
 
             Character character = {
                 tex, 
@@ -329,10 +330,6 @@ void Graphics::cleanup()
 
     clean_batch_data();
 
-    // clean glyph textures and text buffers
-    for (auto& [k,v]:_char_map) {
-        GL_CALL(glDeleteTextures(1, &v.tex_id));
-    }
     GL_CALL(glDeleteVertexArrays(1, &text_vao));
     GL_CALL(glDeleteBuffers(1, &text_vbo));
 
@@ -505,7 +502,6 @@ void Graphics::draw_circle(glm::vec2 center, float radius, glm::vec4 color)
 void Graphics::draw_text(const std::string& text, glm::vec2 pos,
                          glm::vec3 color, float scale /* = 1.0f*/)
 {
-    GL_CALL(glActiveTexture(GL_TEXTURE0));
     GL_CALL(glBindVertexArray(text_vao));
 
     _text_shader->bind();
@@ -531,7 +527,7 @@ void Graphics::draw_text(const std::string& text, glm::vec2 pos,
             xpos + w, ypos + h,   1.0f, 0.0f          
         };
 
-        GL_CALL(glBindTexture(GL_TEXTURE_2D, ch.tex_id));
+        ch.tex->bind();
         GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, text_vbo));
         GL_CALL(glad_glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts.data()));
         

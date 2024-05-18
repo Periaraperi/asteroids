@@ -13,6 +13,7 @@
 typedef struct SDL_Window SDL_Window;
 typedef void* SDL_GLContext;
 class Shader;
+class Texture;
 
 struct Window_Settings {
     std::string title;
@@ -47,7 +48,7 @@ struct Circle_Vertex {
 };
 
 struct Character {
-    uint32_t tex_id;
+    std::shared_ptr<Texture> tex;
     long advance;
     glm::ivec2 size;
     glm::ivec2 bearing;
