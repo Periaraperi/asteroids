@@ -40,6 +40,12 @@ struct Rect_Vertex {
     glm::vec4 color;
 };
 
+struct Temp_Vertex {
+    glm::vec2 pos;
+    glm::vec2 tex_coord;
+    glm::vec4 color;
+};
+
 struct Circle_Vertex {
     glm::vec2 pos;
     glm::vec2 center;
@@ -52,6 +58,22 @@ struct Character {
     long advance;
     glm::ivec2 size;
     glm::ivec2 bearing;
+};
+
+struct Character2 {
+    long advance;
+    glm::ivec2 size;
+    glm::ivec2 bearing;
+};
+
+struct Glyph {
+    long advance;
+    glm::ivec2 size;
+    glm::ivec2 bearing;
+
+    // offset in atlas
+    int offset_x; 
+    int offset_y;
 };
 
 class Graphics {
@@ -87,6 +109,9 @@ public:
                                                                                    
     void draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color);
 
+    // draw Textured quad
+    void draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec2 tex_coord);
+
     void draw_polygon(const std::vector<glm::vec2>& poly_points, glm::vec4 color);
 
     void draw_circle(glm::vec2 center, float radius, glm::vec4 color);
@@ -94,6 +119,8 @@ public:
     void draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color);
 
     void draw_text(const std::string& text, glm::vec2 pos, glm::vec3 color, float scale=1.0f);
+    void draw_text2(const std::string& text, glm::vec2 pos, glm::vec3 color, float scale=1.0f);
+
 
 private:
     void cleanup();
@@ -111,6 +138,10 @@ private:
     void render_circles();
     std::vector<Circle_Vertex> _circles_vertices;
 
+    void render_text();
+    std::vector<Temp_Vertex> _text_rects_vertices;
+
+
 private:
     SDL_Window* _window;
     SDL_GLContext _context;
@@ -120,14 +151,19 @@ private:
     
     // orthographic projection
     glm::mat4 _projection;
+    glm::vec2 _text_atlas_size;
 
     // shaders
     std::unique_ptr<Shader> _triangle_shader;
     std::unique_ptr<Shader> _circle_shader;
     std::unique_ptr<Shader> _line_shader;
     std::unique_ptr<Shader> _text_shader;
+    std::unique_ptr<Shader> _texture_shader;
+    std::unique_ptr<Texture> _text_atlas;
+    std::unique_ptr<Texture> _test_texture;
     
     std::unordered_map<char, Character> _char_map;
+    std::unordered_map<char, Glyph> _glyphs;
 
 public:
     Graphics(const Graphics&) = delete;
