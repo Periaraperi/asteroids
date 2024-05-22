@@ -8,160 +8,66 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <vector>
 #include <array>
 
-#include "opengl_errors.hpp"
-#include "peria_logger.hpp"
+#include "vertex_array.hpp"
+#include "index_buffer.hpp"
+
 #include "shader.hpp"
 #include "texture.hpp"
 
-constexpr int MAX_TRIANGLE_COUNT = 4096; // this many triangles per batch
-uint32_t triangle_batch_vao;
-uint32_t triangle_batch_vbo; // dynamic buffer
-
+constexpr int MAX_TRIANGLE_COUNT = 4096*2; // this many triangles per batch
 constexpr int MAX_RECT_COUNT = 4096;
-uint32_t rect_batch_vao;
-uint32_t rect_batch_vbo; // dynamic buffer
-uint32_t rect_batch_ibo; // index buffer for rects
-std::vector<uint32_t> rect_indices; // store indices here
-
 constexpr int MAX_CIRCLE_COUNT = 4096;
-uint32_t circle_batch_vao;
-uint32_t circle_batch_vbo; // dynamic buffer
-uint32_t circle_batch_ibo; // index buffer for rects
-std::vector<uint32_t> circle_indices; // store indices here
 
-uint32_t text_vao;
-uint32_t text_vbo;
-
-void init_triangle_batch_data()
+void Graphics::init_triangle_batch_data()
 {
-    GL_CALL(glCreateVertexArrays(1, &triangle_batch_vao));
-    GL_CALL(glBindVertexArray(triangle_batch_vao));
-    
-    GL_CALL(glCreateBuffers(1, &triangle_batch_vbo));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, triangle_batch_vbo));
-    // make buffer dynamic since we will update data frequently
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Triangle_Vertex)*MAX_TRIANGLE_COUNT*3, nullptr, GL_DYNAMIC_DRAW));
+    _triangle_batch_vao = std::make_unique<Vertex_Array>();
+    _triangle_batch_vbo = std::make_unique<Vertex_Buffer<Simple_Vertex>>(sizeof(Simple_Vertex)*MAX_TRIANGLE_COUNT*3);
+    _ibo->bind();
 
     // position
-    GL_CALL(glEnableVertexAttribArray(0));
-    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Triangle_Vertex), (const void*)0));
-
+    _triangle_batch_vao->add_attribute(2, GL_FLOAT, false, sizeof(Simple_Vertex));
     // color
-    GL_CALL(glEnableVertexAttribArray(1));
-    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Triangle_Vertex), (const void*)sizeof(glm::vec2)));
+    _triangle_batch_vao->add_attribute(4, GL_FLOAT, false, sizeof(Simple_Vertex));
+
+    _triangle_batch_vao->set_layout();
 
     PERIA_LOG("INIT TRIANGLE BATCH DATA");
 }
 
-void init_rect_batch_data()
+void Graphics::init_rect_batch_data()
 {
-    GL_CALL(glCreateVertexArrays(1, &rect_batch_vao));
-    GL_CALL(glBindVertexArray(rect_batch_vao));
+    _rect_batch_vao = std::make_unique<Vertex_Array>();
+    _rect_batch_vbo = std::make_unique<Vertex_Buffer<Simple_Vertex>>(sizeof(Simple_Vertex)*MAX_RECT_COUNT*4);
+    _ibo->bind(); // reuse 1 ibo
     
-    GL_CALL(glCreateBuffers(1, &rect_batch_vbo));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, rect_batch_vbo));
-    // make buffer dynamic since we will update data frequently
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Rect_Vertex)*MAX_RECT_COUNT*4, nullptr, GL_DYNAMIC_DRAW));
-
-    // position
-    GL_CALL(glEnableVertexAttribArray(0));
-    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Rect_Vertex), (const void*)0));
-
+    // pos
+    _rect_batch_vao->add_attribute(2, GL_FLOAT, false, sizeof(Simple_Vertex));
     // color
-    GL_CALL(glEnableVertexAttribArray(1));
-    GL_CALL(glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Rect_Vertex), (const void*)sizeof(glm::vec2)));
-
-    // index buffer
-    std::size_t count = 4*6*MAX_RECT_COUNT;
-    rect_indices.reserve(count);
-    for (std::size_t i{}; i<count; i += 4) {
-        rect_indices.push_back(i);
-        rect_indices.push_back(i+1);
-        rect_indices.push_back(i+2);
-
-        rect_indices.push_back(i);
-        rect_indices.push_back(i+2);
-        rect_indices.push_back(i+3);
-    }
-    
-    GL_CALL(glCreateBuffers(1, &rect_batch_ibo));
-    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rect_batch_ibo));
-
-    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, rect_indices.size()*sizeof(uint32_t), rect_indices.data(), GL_STATIC_DRAW));
+    _rect_batch_vao->add_attribute(4, GL_FLOAT, false, sizeof(Simple_Vertex));
+    _rect_batch_vao->set_layout();
 
     PERIA_LOG("INIT RECT BATCH DATA");
 }
 
-void init_circle_batch_data()
+void Graphics::init_circle_batch_data()
 {
-    GL_CALL(glCreateVertexArrays(1, &circle_batch_vao));
-    GL_CALL(glBindVertexArray(circle_batch_vao));
+    _circle_batch_vao = std::make_unique<Vertex_Array>();
+    _circle_batch_vbo = std::make_unique<Vertex_Buffer<Circle_Vertex>>(sizeof(Circle_Vertex)*MAX_CIRCLE_COUNT*4);
+    _ibo->bind(); // reuse 1 ibo
     
-    GL_CALL(glCreateBuffers(1, &circle_batch_vbo));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, circle_batch_vbo));
-    // make buffer dynamic since we will update data frequently
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Circle_Vertex)*MAX_CIRCLE_COUNT*4, nullptr, GL_DYNAMIC_DRAW));
-
-    std::size_t offset = 0;
-
-    // position
-    GL_CALL(glEnableVertexAttribArray(0));
-    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Circle_Vertex), (const void*)offset));
-    offset += sizeof(Circle_Vertex::pos);
-    
-    // center
-    GL_CALL(glEnableVertexAttribArray(1));
-    GL_CALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Circle_Vertex), (const void*)offset));
-    offset += sizeof(Circle_Vertex::center);
-
+    // bounding box pos for shader
+    _circle_batch_vao->add_attribute(2, GL_FLOAT, false, sizeof(Circle_Vertex));
+    // center pos
+    _circle_batch_vao->add_attribute(2, GL_FLOAT, false, sizeof(Circle_Vertex));
     // color
-    GL_CALL(glEnableVertexAttribArray(2));
-    GL_CALL(glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Circle_Vertex), (const void*)offset));
-    offset += sizeof(Circle_Vertex::color);
-
+    _circle_batch_vao->add_attribute(4, GL_FLOAT, false, sizeof(Circle_Vertex));
     // radius
-    GL_CALL(glEnableVertexAttribArray(3));
-    GL_CALL(glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Circle_Vertex), (const void*)offset));
-    offset += sizeof(Circle_Vertex::radius);
-
-    // index buffer
-    std::size_t count = 4*6*MAX_CIRCLE_COUNT;
-    circle_indices.reserve(count);
-    for (std::size_t i{}; i<count; i += 4) {
-        circle_indices.push_back(i);
-        circle_indices.push_back(i+1);
-        circle_indices.push_back(i+2);
-
-        circle_indices.push_back(i);
-        circle_indices.push_back(i+2);
-        circle_indices.push_back(i+3);
-    }
-    
-    GL_CALL(glCreateBuffers(1, &circle_batch_ibo));
-    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, circle_batch_ibo));
-
-    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, circle_indices.size()*sizeof(uint32_t), circle_indices.data(), GL_STATIC_DRAW));
+    _circle_batch_vao->add_attribute(1, GL_FLOAT, false, sizeof(Circle_Vertex));
+    _circle_batch_vao->set_layout();
 
     PERIA_LOG("INIT CIRCLE BATCH DATA");
-}
-
-void clean_batch_data()
-{
-    GL_CALL(glDeleteBuffers(1, &triangle_batch_vbo));
-    GL_CALL(glDeleteVertexArrays(1, &triangle_batch_vao));
-
-    GL_CALL(glDeleteBuffers(1, &rect_batch_vbo));
-    GL_CALL(glDeleteBuffers(1, &rect_batch_ibo));
-    GL_CALL(glDeleteVertexArrays(1, &rect_batch_vao));
-
-    GL_CALL(glDeleteBuffers(1, &circle_batch_vbo));
-    GL_CALL(glDeleteBuffers(1, &circle_batch_ibo));
-    GL_CALL(glDeleteVertexArrays(1, &circle_batch_vao));
-
-    PERIA_LOG("CLEANED BATCH DATA");
 }
 
 Graphics::Graphics(const Window_Settings& settings)
@@ -223,17 +129,15 @@ Graphics::Graphics(const Window_Settings& settings)
     _text_shader = std::make_unique<Shader>("res/shaders/text_vert.glsl", "res/shaders/text_frag.glsl");
     _texture_shader = std::make_unique<Shader>("res/shaders/texture_vert.glsl", "res/shaders/texture_frag.glsl");
 
-    _test_texture = std::make_unique<Texture>(80, 80);
-    _test_texture->write_sub_texture_color(0, 0, 24, 24);
+    // general ibo here, unbind and bind on each setup of vao
+    // below vaos share one ibo
+    _ibo = std::make_unique<Index_Buffer>(4*6*MAX_CIRCLE_COUNT);
+    _ibo->unbind();
 
-    // batching related stuff
-    _triangles_vertices.reserve(MAX_TRIANGLE_COUNT*3);
     init_triangle_batch_data();
 
-    _rects_vertices.reserve(MAX_RECT_COUNT*4);
     init_rect_batch_data();
 
-    _circles_vertices.reserve(MAX_CIRCLE_COUNT*4);
     init_circle_batch_data();
 
     //if (0)
@@ -321,26 +225,18 @@ Graphics::Graphics(const Window_Settings& settings)
             std::exit(EXIT_FAILURE);
         }
 
-
-        // gl buffers here
-
-        GL_CALL(glCreateVertexArrays(1, &text_vao));
-        GL_CALL(glBindVertexArray(text_vao));
+        _text_vao = std::make_unique<Vertex_Array>();
+        _text_vbo = std::make_unique<Vertex_Buffer<Rect_Vertex>>(sizeof(Rect_Vertex)*4*MAX_RECT_COUNT);
         
-        GL_CALL(glCreateBuffers(1, &text_vbo));
-        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, text_vbo));
-        GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Temp_Vertex)*4*MAX_RECT_COUNT, nullptr, GL_DYNAMIC_DRAW));
+        _ibo->bind();
 
-        GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rect_batch_ibo)); // this works
-
-        GL_CALL(glEnableVertexAttribArray(0));
-        GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Temp_Vertex), 0));
-
-        GL_CALL(glEnableVertexAttribArray(1));
-        GL_CALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Temp_Vertex), (const void*)(2*sizeof(float))));
-
-        GL_CALL(glEnableVertexAttribArray(2));
-        GL_CALL(glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Temp_Vertex), (const void*)(4*sizeof(float))));
+        // quad pos
+        _text_vao->add_attribute(2, GL_FLOAT, false, sizeof(Rect_Vertex));
+        // tex coords
+        _text_vao->add_attribute(2, GL_FLOAT, false, sizeof(Rect_Vertex));
+        // color
+        _text_vao->add_attribute(4, GL_FLOAT, false, sizeof(Rect_Vertex));
+        _text_vao->set_layout();
     }
 
     PERIA_LOG("Graphics ctor()");
@@ -361,11 +257,6 @@ void Graphics::cleanup()
     _line_shader.reset();
     _text_shader.reset();
     _texture_shader.reset();
-
-    clean_batch_data();
-
-    GL_CALL(glDeleteBuffers(1, &text_vbo));
-    GL_CALL(glDeleteVertexArrays(1, &text_vao));
 
     SDL_GL_DeleteContext(_context);
 
@@ -497,91 +388,91 @@ void Graphics::draw_polygon(const std::vector<glm::vec2>& poly_points, glm::vec4
 {
     PERIA_ASSERT(poly_points.size() >= 3, "poly must have at least 3 points");
     for (std::size_t i=1; i<poly_points.size()-1; ++i) {
-        _triangles_vertices.push_back({poly_points[0],   color});
-        _triangles_vertices.push_back({poly_points[i],   color});
-        _triangles_vertices.push_back({poly_points[i+1], color});
+        _triangle_batch_vbo->add_data({poly_points[0],   color});
+        _triangle_batch_vbo->add_data({poly_points[i],   color});
+        _triangle_batch_vbo->add_data({poly_points[i+1], color});
     }
 }
 
 // triangle points in world position in clockwise order
 void Graphics::draw_triangle(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3, glm::vec4 color)
 {
-    _triangles_vertices.push_back({p1, color});
-    _triangles_vertices.push_back({p2, color});
-    _triangles_vertices.push_back({p3, color});
+    _triangle_batch_vbo->add_data({p1, color});
+    _triangle_batch_vbo->add_data({p2, color});
+    _triangle_batch_vbo->add_data({p3, color});
 }
 
 // rect points in world position in clockwise order
 // pos -> rect's top left corner coordinates
 void Graphics::draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color)
 {
-    _rects_vertices.push_back({{pos.x, pos.y-size.y},        color});
-    _rects_vertices.push_back({{pos.x, pos.y},               color});
-    _rects_vertices.push_back({{pos.x+size.x, pos.y},        color});
-    _rects_vertices.push_back({{pos.x+size.x, pos.y-size.y}, color});
+    _rect_batch_vbo->add_data({{pos.x, pos.y-size.y},        color});
+    _rect_batch_vbo->add_data({{pos.x, pos.y},               color});
+    _rect_batch_vbo->add_data({{pos.x+size.x, pos.y},        color});
+    _rect_batch_vbo->add_data({{pos.x+size.x, pos.y-size.y}, color});
 }
 
 //TEST SHIT
-void Graphics::draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec2 tex_coord)
-{
-    uint32_t vao;
-    GL_CALL(glGenVertexArrays(1, &vao));
-    GL_CALL(glBindVertexArray(vao));
-
-    //const auto& glyph = _glyphs['('];
-    //size.x = glyph.size.x;
-    //size.y = glyph.size.y;
-
-    //std::vector<Temp_Vertex> data {
-    //    {{pos.x,        pos.y-size.y}, {glyph.offset_x/512.0f, glyph.offset_y/512.0f} /*{0.0f, 0.0f}*/},
-    //    {{pos.x,        pos.y},        {glyph.offset_x/512.0f, (glyph.offset_y+glyph.size.y)/512.0f} /*{0.0f, 1.0f}*/},
-    //    {{pos.x+size.x, pos.y},        {(glyph.offset_x+glyph.size.x)/512.0f, (glyph.offset_y+glyph.size.y)/512.0f} /*{1.0f, 1.0f}*/},
-    //    {{pos.x+size.x, pos.y-size.y}, {(glyph.offset_x+glyph.size.x)/512.0f, glyph.offset_y/512.0f} /*{1.0f, 0.0f}*/},
-    //};
-    size = _text_atlas_size;
-    std::vector<Temp_Vertex> data {
-        {{pos.x,        pos.y-size.y}, {0.0f, 0.0f}, {0,0,0,1}},
-        {{pos.x,        pos.y},        {0.0f, 1.0f}, {0,0,0,1}},
-        {{pos.x+size.x, pos.y},        {1.0f, 1.0f}, {0,0,0,1}},
-        {{pos.x+size.x, pos.y-size.y}, {1.0f, 0.0f}, {0,0,0,1}},
-    };
-    
-    uint32_t vbo;
-    GL_CALL(glGenBuffers(1, &vbo));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Temp_Vertex)*data.size(), data.data(), GL_STATIC_DRAW));
-
-    std::vector<uint32_t> indices {0,1,2, 0,2,3};
-    uint32_t ibo;
-    GL_CALL(glGenBuffers(1, &ibo));
-    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
-    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)*indices.size(), indices.data(), GL_STATIC_DRAW));
-
-    // position
-    GL_CALL(glEnableVertexAttribArray(0));
-    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Temp_Vertex), (const void*)0));
-
-    // tex coords
-    GL_CALL(glEnableVertexAttribArray(1));
-    GL_CALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Temp_Vertex), (const void*)sizeof(glm::vec2)));
-    
-    _texture_shader->bind();
-    _texture_shader->set_mat4("u_mvp", _projection);
-    _text_atlas->bind();
-    GL_CALL(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr));
-
-    GL_CALL(glDeleteBuffers(1, &vbo));
-    GL_CALL(glDeleteBuffers(1, &ibo));
-    GL_CALL(glDeleteVertexArrays(1, &vao));
-}
+//void Graphics::draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec2 tex_coord)
+//{
+//    uint32_t vao;
+//    GL_CALL(glGenVertexArrays(1, &vao));
+//    GL_CALL(glBindVertexArray(vao));
+//
+//    //const auto& glyph = _glyphs['('];
+//    //size.x = glyph.size.x;
+//    //size.y = glyph.size.y;
+//
+//    //std::vector<Simple_Vertex> data {
+//    //    {{pos.x,        pos.y-size.y}, {glyph.offset_x/512.0f, glyph.offset_y/512.0f} /*{0.0f, 0.0f}*/},
+//    //    {{pos.x,        pos.y},        {glyph.offset_x/512.0f, (glyph.offset_y+glyph.size.y)/512.0f} /*{0.0f, 1.0f}*/},
+//    //    {{pos.x+size.x, pos.y},        {(glyph.offset_x+glyph.size.x)/512.0f, (glyph.offset_y+glyph.size.y)/512.0f} /*{1.0f, 1.0f}*/},
+//    //    {{pos.x+size.x, pos.y-size.y}, {(glyph.offset_x+glyph.size.x)/512.0f, glyph.offset_y/512.0f} /*{1.0f, 0.0f}*/},
+//    //};
+//    size = _text_atlas_size;
+//    std::vector<Rect_Vertex> data {
+//        {{pos.x,        pos.y-size.y}, {0.0f, 0.0f}, {0,0,0,1}},
+//        {{pos.x,        pos.y},        {0.0f, 1.0f}, {0,0,0,1}},
+//        {{pos.x+size.x, pos.y},        {1.0f, 1.0f}, {0,0,0,1}},
+//        {{pos.x+size.x, pos.y-size.y}, {1.0f, 0.0f}, {0,0,0,1}},
+//    };
+//    
+//    uint32_t vbo;
+//    GL_CALL(glGenBuffers(1, &vbo));
+//    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
+//    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Simple_Vertex)*data.size(), data.data(), GL_STATIC_DRAW));
+//
+//    std::vector<uint32_t> indices {0,1,2, 0,2,3};
+//    uint32_t ibo;
+//    GL_CALL(glGenBuffers(1, &ibo));
+//    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
+//    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)*indices.size(), indices.data(), GL_STATIC_DRAW));
+//
+//    // position
+//    GL_CALL(glEnableVertexAttribArray(0));
+//    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Simple_Vertex), (const void*)0));
+//
+//    // tex coords
+//    GL_CALL(glEnableVertexAttribArray(1));
+//    GL_CALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Simple_Vertex), (const void*)sizeof(glm::vec2)));
+//    
+//    _texture_shader->bind();
+//    _texture_shader->set_mat4("u_mvp", _projection);
+//    _text_atlas->bind();
+//    GL_CALL(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr));
+//
+//    GL_CALL(glDeleteBuffers(1, &vbo));
+//    GL_CALL(glDeleteBuffers(1, &ibo));
+//    GL_CALL(glDeleteVertexArrays(1, &vao));
+//}
 
 // center and radius in world position
 void Graphics::draw_circle(glm::vec2 center, float radius, glm::vec4 color)
 {
-    _circles_vertices.push_back({{center.x-radius, center.y-radius}, center, color, radius});
-    _circles_vertices.push_back({{center.x-radius, center.y+radius}, center, color, radius});
-    _circles_vertices.push_back({{center.x+radius, center.y+radius}, center, color, radius});
-    _circles_vertices.push_back({{center.x+radius, center.y-radius}, center, color, radius});
+    _circle_batch_vbo->add_data({{center.x-radius, center.y-radius}, center, color, radius});
+    _circle_batch_vbo->add_data({{center.x-radius, center.y+radius}, center, color, radius});
+    _circle_batch_vbo->add_data({{center.x+radius, center.y+radius}, center, color, radius});
+    _circle_batch_vbo->add_data({{center.x+radius, center.y-radius}, center, color, radius});
 }
 
 std::array<glm::vec2, 4> tex_coords_tmp(int x, int y, int w, int h, glm::vec2 atlas_size)
@@ -597,9 +488,7 @@ std::array<glm::vec2, 4> tex_coords_tmp(int x, int y, int w, int h, glm::vec2 at
     }};
 }
 
-// switch to string_view later
-// very inefficient, this is code from learnOpengl text rendering section
-// want to experiment more with texts, currently remembering things and fucking around
+// adds vertex data to large buffer
 void Graphics::draw_text(const std::string& text, glm::vec2 pos,
                          glm::vec3 color, float scale /* = 1.0f*/)
 {
@@ -613,91 +502,14 @@ void Graphics::draw_text(const std::string& text, glm::vec2 pos,
 
         auto tex_coords = tex_coords_tmp(glyph.offset_x, glyph.offset_y, glyph.size.x, glyph.size.y, _text_atlas_size);
 
-        // pos is already in world space
-        //std::array<float, 6*4> verts {
-        //    xpos,     ypos + h,  tex_coords[0].x, tex_coords[0].y, /*0.0f, 0.0f,*/
-        //    xpos,     ypos,      tex_coords[1].x, tex_coords[1].y, /*0.0f, 1.0f,*/
-        //    xpos + w, ypos,      tex_coords[2].x, tex_coords[2].y, /*1.0f, 1.0f,*/
-
-        //    xpos,     ypos + h,  tex_coords[0].x, tex_coords[0].y, /*0.0f, 0.0f,*/
-        //    xpos + w, ypos,      tex_coords[2].x, tex_coords[2].y, /*1.0f, 1.0f,*/
-        //    xpos + w, ypos + h,  tex_coords[3].x, tex_coords[3].y /*1.0f, 0.0f */         
-        //};
-
-        _text_rects_vertices.push_back({{xpos,   ypos-h}, {tex_coords[0].x, tex_coords[0].y}, {color.r, color.g, color.b, 1.0f}});
-        _text_rects_vertices.push_back({{xpos,   ypos  }, {tex_coords[1].x, tex_coords[1].y}, {color.r, color.g, color.b, 1.0f}});
-        _text_rects_vertices.push_back({{xpos+w, ypos  }, {tex_coords[2].x, tex_coords[2].y}, {color.r, color.g, color.b, 1.0f}});
-        _text_rects_vertices.push_back({{xpos+w, ypos-h}, {tex_coords[3].x, tex_coords[3].y}, {color.r, color.g, color.b, 1.0f}});
-
-        //std::array<float, 6*4> verts {
-        //    xpos,     ypos - h,  tex_coords[0].x, tex_coords[0].y, /*0.0f, 0.0f,*/
-        //    xpos,     ypos,      tex_coords[1].x, tex_coords[1].y, /*0.0f, 1.0f,*/
-        //    xpos + w, ypos,      tex_coords[2].x, tex_coords[2].y, /*1.0f, 1.0f,*/
-
-        //    xpos,     ypos - h,  tex_coords[0].x, tex_coords[0].y, /*0.0f, 0.0f,*/
-        //    xpos + w, ypos,      tex_coords[2].x, tex_coords[2].y, /*1.0f, 1.0f,*/
-        //    xpos + w, ypos - h,  tex_coords[3].x, tex_coords[3].y /*1.0f, 0.0f */         
-        //};
-
-        //GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, text_vbo));
-        //GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts.data()));
-        //
-        //GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 6));
+        _text_vbo->add_data({{xpos,   ypos-h}, {tex_coords[0].x, tex_coords[0].y}, {color.r, color.g, color.b, 1.0f}});
+        _text_vbo->add_data({{xpos,   ypos  }, {tex_coords[1].x, tex_coords[1].y}, {color.r, color.g, color.b, 1.0f}});
+        _text_vbo->add_data({{xpos+w, ypos  }, {tex_coords[2].x, tex_coords[2].y}, {color.r, color.g, color.b, 1.0f}});
+        _text_vbo->add_data({{xpos+w, ypos-h}, {tex_coords[3].x, tex_coords[3].y}, {color.r, color.g, color.b, 1.0f}});
 
         pos.x += (glyph.advance >> 6)*scale;
     }
 
-}
-
-// from text atlas
-void Graphics::draw_text2(const std::string& text, glm::vec2 pos,
-                          glm::vec3 color, float scale /* = 1.0f*/)
-{
-    GL_CALL(glBindVertexArray(text_vao));
-
-    _text_shader->bind();
-    _text_shader->set_vec3("u_color", color);
-    _text_shader->set_mat4("u_mvp", _projection);
-    _text_atlas->bind();
-
-    for (const auto& c:text) {
-        auto glyph = _glyphs[c];
-        float xpos = pos.x + glyph.bearing.x*scale;
-        float ypos = pos.y + (glyph.bearing.y)*scale;
-
-        float w = glyph.size.x*scale;
-        float h = glyph.size.y*scale;
-
-        auto tex_coords = tex_coords_tmp(glyph.offset_x, glyph.offset_y, glyph.size.x, glyph.size.y, _text_atlas_size);
-
-        // pos is already in world space
-        //std::array<float, 6*4> verts {
-        //    xpos,     ypos + h,  tex_coords[0].x, tex_coords[0].y, /*0.0f, 0.0f,*/
-        //    xpos,     ypos,      tex_coords[1].x, tex_coords[1].y, /*0.0f, 1.0f,*/
-        //    xpos + w, ypos,      tex_coords[2].x, tex_coords[2].y, /*1.0f, 1.0f,*/
-
-        //    xpos,     ypos + h,  tex_coords[0].x, tex_coords[0].y, /*0.0f, 0.0f,*/
-        //    xpos + w, ypos,      tex_coords[2].x, tex_coords[2].y, /*1.0f, 1.0f,*/
-        //    xpos + w, ypos + h,  tex_coords[3].x, tex_coords[3].y /*1.0f, 0.0f */         
-        //};
-
-        std::array<float, 6*4> verts {
-            xpos,     ypos - h,  tex_coords[0].x, tex_coords[0].y, /*0.0f, 0.0f,*/
-            xpos,     ypos,      tex_coords[1].x, tex_coords[1].y, /*0.0f, 1.0f,*/
-            xpos + w, ypos,      tex_coords[2].x, tex_coords[2].y, /*1.0f, 1.0f,*/
-
-            xpos,     ypos - h,  tex_coords[0].x, tex_coords[0].y, /*0.0f, 0.0f,*/
-            xpos + w, ypos,      tex_coords[2].x, tex_coords[2].y, /*1.0f, 1.0f,*/
-            xpos + w, ypos - h,  tex_coords[3].x, tex_coords[3].y /*1.0f, 0.0f */         
-        };
-
-        GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, text_vbo));
-        GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(verts), verts.data()));
-        
-        GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 6));
-
-        pos.x += (glyph.advance >> 6)*scale;
-    }
 }
 
 // should be called on each frame only once before swapping buffers.
@@ -712,13 +524,13 @@ void Graphics::flush()
 
 void Graphics::render_triangles()
 {
-    if (_triangles_vertices.empty()) return;
+    if (_triangle_batch_vbo->data_empty()) return;
 
-    int count = _triangles_vertices.size() / 3; // overall, this many triangles
-    std::size_t offset = 0; // offset inside _triangles
+    int count = _triangle_batch_vbo->data_size() / 3; // overall, this many triangles
+    std::size_t offset = 0; // offset inside _data
 
-    GL_CALL(glBindVertexArray(triangle_batch_vao));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, triangle_batch_vbo));
+    _triangle_batch_vao->bind();
+    _triangle_batch_vbo->bind();
     _triangle_shader->bind();
     _triangle_shader->set_mat4("u_mvp", _projection);
 
@@ -730,24 +542,25 @@ void Graphics::render_triangles()
         else { // smaller remaining batch
             c = count;
         }
-        GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, 3*c*sizeof(Triangle_Vertex), _triangles_vertices.data()+offset));
+        _triangle_batch_vbo->set_subdata(0, offset, 3*c*sizeof(Simple_Vertex));
         GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 3*c));
         offset += 3*c;
         count -= c;
     }
 
-    _triangles_vertices.clear();
+    _triangle_batch_vbo->clear_data();
+    _triangle_batch_vbo->unbind();
 }
 
 void Graphics::render_rects()
 {
-    if (_rects_vertices.empty()) return;
+    if (_rect_batch_vbo->data_empty()) return;
 
-    int count = _rects_vertices.size() / 4; // overall, this many rects
-    std::size_t offset = 0; // offset inside _rects
+    int count = _rect_batch_vbo->data_size() / 4; // overall, this many rects
+    std::size_t offset = 0; // offset inside _data
 
-    GL_CALL(glBindVertexArray(rect_batch_vao));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, rect_batch_vbo));
+    _rect_batch_vao->bind();
+    _rect_batch_vbo->bind();
     // just reuse tri shader
     _triangle_shader->bind();
     _triangle_shader->set_mat4("u_mvp", _projection);
@@ -761,24 +574,25 @@ void Graphics::render_rects()
             c = count;
         }
 
-        GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, 4*c*sizeof(Rect_Vertex), _rects_vertices.data()+offset));
+        _rect_batch_vbo->set_subdata(0, offset, 4*c*sizeof(Simple_Vertex));
         GL_CALL(glDrawElements(GL_TRIANGLES, c*6, GL_UNSIGNED_INT, nullptr));
         offset += 4*c;
         count -= c;
     }
 
-    _rects_vertices.clear();
+    _rect_batch_vbo->clear_data();
+    _rect_batch_vbo->unbind();
 }
 
 void Graphics::render_circles()
 {
-    if (_circles_vertices.empty()) return;
+    if (_circle_batch_vbo->data_empty()) return;
 
-    int count = _circles_vertices.size() / 4; // overall, this many rects
-    std::size_t offset = 0; // offset inside _circles
+    int count = _circle_batch_vbo->data_size() / 4; // overall, this many rects
+    std::size_t offset = 0; // offset inside _data
 
-    GL_CALL(glBindVertexArray(circle_batch_vao));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, circle_batch_vbo));
+    _circle_batch_vao->bind();
+    _circle_batch_vbo->bind();
 
     _circle_shader->bind();
     _circle_shader->set_mat4("u_mvp", _projection);
@@ -792,24 +606,25 @@ void Graphics::render_circles()
             c = count;
         }
 
-        GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, 4*c*sizeof(Circle_Vertex), _circles_vertices.data()+offset));
+        _circle_batch_vbo->set_subdata(0, offset, 4*c*sizeof(Circle_Vertex));
         GL_CALL(glDrawElements(GL_TRIANGLES, c*6, GL_UNSIGNED_INT, nullptr));
         offset += 4*c;
         count -= c;
     }
 
-    _circles_vertices.clear();
+    _circle_batch_vbo->clear_data();
+    _circle_batch_vbo->unbind();
 }
 
 void Graphics::render_text()
 {
-    if (_text_rects_vertices.empty()) return;
+    if (_text_vbo->data_empty()) return;
 
-    int count = _text_rects_vertices.size() / 4; // overall, this many rects
-    std::size_t offset = 0; // offset inside text _rects
+    int count = _text_vbo->data_size() / 4; // overall, this many rects
+    std::size_t offset = 0; // offset inside text _data
 
-    GL_CALL(glBindVertexArray(text_vao));
-    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, text_vbo));
+    _text_vao->bind();
+    _text_vbo->bind();
     // just reuse tri shader
     _text_shader->bind();
     _text_shader->set_mat4("u_mvp", _projection);
@@ -823,12 +638,12 @@ void Graphics::render_text()
         else { // smaller remaining batch
             c = count;
         }
-
-        GL_CALL(glBufferSubData(GL_ARRAY_BUFFER, 0, 4*c*sizeof(Temp_Vertex), _text_rects_vertices.data()+offset));
+        _text_vbo->set_subdata(0, offset, 4*c*sizeof(Rect_Vertex));
         GL_CALL(glDrawElements(GL_TRIANGLES, c*6, GL_UNSIGNED_INT, nullptr));
         offset += 4*c;
         count -= c;
     }
 
-    _text_rects_vertices.clear();
+    _text_vbo->clear_data();
+    _text_vbo->unbind();
 }

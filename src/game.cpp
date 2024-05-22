@@ -60,10 +60,6 @@ void Game::run()
 
 void Game::update(float dt)
 {
-    auto [x, y] = _input_manager.get_mouse();
-    y = _graphics.get_window_size().second - y;
-    _graphics.set_window_title("Asteroids " + 
-                               std::to_string(x) + " " + std::to_string(y));
     switch(_state) {
         case Game_State::MAIN_MENU:
             update_main_menu_state();
@@ -84,15 +80,12 @@ void Game::render()
 {
     _graphics.clear_buffer();
     // DRAW CALLS HERE!
-
-    _graphics.draw_rect({500.0f, 700.0f}, {512, 512}, {1,1});
-    _graphics.draw_text("yle SheChema chamoaj()()vimmmm {} ~~~", {100, 100}, {0.2450f, 0.1550f, 0.392f}, 1);
     
     auto [w, h] = _graphics.get_window_size();
     switch(_state) {
         case Game_State::MAIN_MENU:
         {
-            //_graphics.draw_text2("ASTEROIDS", {w*0.5f-120, h*0.5f}, {0.0f, 0.0f, 0.0f});
+            _graphics.draw_text("Asteroids", {w*0.5f - 120.0f, h*0.5f}, {0,0,0});
         } break;
         case Game_State::PLAYING:
         {
@@ -108,11 +101,11 @@ void Game::render()
         } break;
         case Game_State::DEAD:
         {
-            _graphics.draw_text("YOU DIED", {w*0.5f-120, h*0.5f}, {0.0f, 0.0f, 0.0f});
+            _graphics.draw_text("YOU LOST", {w*0.5f - 120.0f, h*0.5f}, {0,0,0});
         } break;
         case Game_State::WON:
         {
-            _graphics.draw_text("YOU WON", {w*0.5f-120, h*0.5f}, {0.0f, 0.0f, 0.0f});
+            _graphics.draw_text("YOU WON", {w*0.5f - 120.0f, h*0.5f}, {0,0,0});
         } break;
     }
 

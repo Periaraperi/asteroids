@@ -11,6 +11,8 @@ set(SRCS
     main.cpp
 
     ${SRC_DIR}/graphics.cpp
+    ${SRC_DIR}/vertex_array.cpp
+    ${SRC_DIR}/index_buffer.cpp
     ${SRC_DIR}/input_manager.cpp
     ${SRC_DIR}/texture.cpp
     ${SRC_DIR}/shader.cpp

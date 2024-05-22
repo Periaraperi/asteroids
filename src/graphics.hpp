@@ -4,14 +4,18 @@
 #include <utility>
 #include <string>
 #include <memory>
-#include <vector>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
 
+#include "vertex_buffer.hpp"
+
 // forward declare
 typedef struct SDL_Window SDL_Window;
 typedef void* SDL_GLContext;
+
+class Vertex_Array;
+class Index_Buffer;
 class Shader;
 class Texture;
 
@@ -30,17 +34,12 @@ struct Window_Settings {
     {}
 };
 
-struct Triangle_Vertex {
+struct Simple_Vertex {
     glm::vec2 pos;
     glm::vec4 color;
 };
 
 struct Rect_Vertex {
-    glm::vec2 pos;
-    glm::vec4 color;
-};
-
-struct Temp_Vertex {
     glm::vec2 pos;
     glm::vec2 tex_coord;
     glm::vec4 color;
@@ -51,19 +50,6 @@ struct Circle_Vertex {
     glm::vec2 center;
     glm::vec4 color;
     float radius;
-};
-
-struct Character {
-    std::shared_ptr<Texture> tex;
-    long advance;
-    glm::ivec2 size;
-    glm::ivec2 bearing;
-};
-
-struct Character2 {
-    long advance;
-    glm::ivec2 size;
-    glm::ivec2 bearing;
 };
 
 struct Glyph {
@@ -119,8 +105,6 @@ public:
     void draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color);
 
     void draw_text(const std::string& text, glm::vec2 pos, glm::vec3 color, float scale=1.0f);
-    void draw_text2(const std::string& text, glm::vec2 pos, glm::vec3 color, float scale=1.0f);
-
 
 private:
     void cleanup();
@@ -130,17 +114,12 @@ private:
     // render functions that do actual draw calls on batched data
 
     void render_triangles();
-    std::vector<Triangle_Vertex> _triangles_vertices;
 
     void render_rects();
-    std::vector<Rect_Vertex> _rects_vertices;
 
     void render_circles();
-    std::vector<Circle_Vertex> _circles_vertices;
 
     void render_text();
-    std::vector<Temp_Vertex> _text_rects_vertices;
-
 
 private:
     SDL_Window* _window;
@@ -160,10 +139,27 @@ private:
     std::unique_ptr<Shader> _text_shader;
     std::unique_ptr<Shader> _texture_shader;
     std::unique_ptr<Texture> _text_atlas;
-    std::unique_ptr<Texture> _test_texture;
+    //std::unique_ptr<Texture> _test_texture;
     
-    std::unordered_map<char, Character> _char_map;
     std::unordered_map<char, Glyph> _glyphs;
+
+    std::unique_ptr<Vertex_Array> _triangle_batch_vao;
+    std::unique_ptr<Vertex_Buffer<Simple_Vertex>> _triangle_batch_vbo;
+
+    std::unique_ptr<Vertex_Array> _circle_batch_vao;
+    std::unique_ptr<Vertex_Buffer<Circle_Vertex>> _circle_batch_vbo;
+
+    std::unique_ptr<Vertex_Array> _rect_batch_vao;
+    std::unique_ptr<Vertex_Buffer<Simple_Vertex>> _rect_batch_vbo;
+
+    std::unique_ptr<Vertex_Array> _text_vao;
+    std::unique_ptr<Vertex_Buffer<Rect_Vertex>> _text_vbo;
+
+    std::unique_ptr<Index_Buffer> _ibo;
+
+    void init_circle_batch_data();
+    void init_triangle_batch_data();
+    void init_rect_batch_data();
 
 public:
     Graphics(const Graphics&) = delete;
