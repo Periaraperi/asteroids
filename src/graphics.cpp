@@ -211,9 +211,6 @@ Graphics::Graphics(const Window_Settings& settings)
             }
         }
 
-        PERIA_LOG("{ ", _glyphs['{'].advance, " | ", _glyphs['|'].advance, 
-                " } ", _glyphs['}'].advance);
-
         // cleanup
         if (FT_Done_Face(face) != 0) {
             PERIA_LOG("Failed on FT_Done_Face()");
@@ -411,60 +408,6 @@ void Graphics::draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color)
     _rect_batch_vbo->add_data({{pos.x+size.x, pos.y-size.y}, color});
 }
 
-//TEST SHIT
-//void Graphics::draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec2 tex_coord)
-//{
-//    uint32_t vao;
-//    GL_CALL(glGenVertexArrays(1, &vao));
-//    GL_CALL(glBindVertexArray(vao));
-//
-//    //const auto& glyph = _glyphs['('];
-//    //size.x = glyph.size.x;
-//    //size.y = glyph.size.y;
-//
-//    //std::vector<Simple_Vertex> data {
-//    //    {{pos.x,        pos.y-size.y}, {glyph.offset_x/512.0f, glyph.offset_y/512.0f} /*{0.0f, 0.0f}*/},
-//    //    {{pos.x,        pos.y},        {glyph.offset_x/512.0f, (glyph.offset_y+glyph.size.y)/512.0f} /*{0.0f, 1.0f}*/},
-//    //    {{pos.x+size.x, pos.y},        {(glyph.offset_x+glyph.size.x)/512.0f, (glyph.offset_y+glyph.size.y)/512.0f} /*{1.0f, 1.0f}*/},
-//    //    {{pos.x+size.x, pos.y-size.y}, {(glyph.offset_x+glyph.size.x)/512.0f, glyph.offset_y/512.0f} /*{1.0f, 0.0f}*/},
-//    //};
-//    size = _text_atlas_size;
-//    std::vector<Rect_Vertex> data {
-//        {{pos.x,        pos.y-size.y}, {0.0f, 0.0f}, {0,0,0,1}},
-//        {{pos.x,        pos.y},        {0.0f, 1.0f}, {0,0,0,1}},
-//        {{pos.x+size.x, pos.y},        {1.0f, 1.0f}, {0,0,0,1}},
-//        {{pos.x+size.x, pos.y-size.y}, {1.0f, 0.0f}, {0,0,0,1}},
-//    };
-//    
-//    uint32_t vbo;
-//    GL_CALL(glGenBuffers(1, &vbo));
-//    GL_CALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-//    GL_CALL(glBufferData(GL_ARRAY_BUFFER, sizeof(Simple_Vertex)*data.size(), data.data(), GL_STATIC_DRAW));
-//
-//    std::vector<uint32_t> indices {0,1,2, 0,2,3};
-//    uint32_t ibo;
-//    GL_CALL(glGenBuffers(1, &ibo));
-//    GL_CALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
-//    GL_CALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)*indices.size(), indices.data(), GL_STATIC_DRAW));
-//
-//    // position
-//    GL_CALL(glEnableVertexAttribArray(0));
-//    GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Simple_Vertex), (const void*)0));
-//
-//    // tex coords
-//    GL_CALL(glEnableVertexAttribArray(1));
-//    GL_CALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Simple_Vertex), (const void*)sizeof(glm::vec2)));
-//    
-//    _texture_shader->bind();
-//    _texture_shader->set_mat4("u_mvp", _projection);
-//    _text_atlas->bind();
-//    GL_CALL(glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr));
-//
-//    GL_CALL(glDeleteBuffers(1, &vbo));
-//    GL_CALL(glDeleteBuffers(1, &ibo));
-//    GL_CALL(glDeleteVertexArrays(1, &vao));
-//}
-
 // center and radius in world position
 void Graphics::draw_circle(glm::vec2 center, float radius, glm::vec4 color)
 {
@@ -488,23 +431,24 @@ std::array<glm::vec2, 4> tex_coords_tmp(int x, int y, int w, int h, glm::vec2 at
 }
 
 // adds vertex data to large buffer
+// pos start at bottom left corner unlike other drawing routines
 void Graphics::draw_text(const std::string& text, glm::vec2 pos,
                          glm::vec3 color, float scale /* = 1.0f*/)
 {
     for (const auto& c:text) {
         auto glyph = _glyphs[c];
         float xpos = pos.x + glyph.bearing.x*scale;
-        float ypos = pos.y + (glyph.bearing.y)*scale;
+        float ypos = pos.y - (glyph.size.y - glyph.bearing.y)*scale;
 
         float w = glyph.size.x*scale;
         float h = glyph.size.y*scale;
 
         auto tex_coords = tex_coords_tmp(glyph.offset_x, glyph.offset_y, glyph.size.x, glyph.size.y, _text_atlas_size);
 
-        _text_vbo->add_data({{xpos,   ypos-h}, {tex_coords[0].x, tex_coords[0].y}, {color.r, color.g, color.b, 1.0f}});
-        _text_vbo->add_data({{xpos,   ypos  }, {tex_coords[1].x, tex_coords[1].y}, {color.r, color.g, color.b, 1.0f}});
-        _text_vbo->add_data({{xpos+w, ypos  }, {tex_coords[2].x, tex_coords[2].y}, {color.r, color.g, color.b, 1.0f}});
-        _text_vbo->add_data({{xpos+w, ypos-h}, {tex_coords[3].x, tex_coords[3].y}, {color.r, color.g, color.b, 1.0f}});
+        _text_vbo->add_data({{xpos,   ypos  }, {tex_coords[0].x, tex_coords[0].y}, {color.r, color.g, color.b, 1.0f}});
+        _text_vbo->add_data({{xpos,   ypos+h}, {tex_coords[1].x, tex_coords[1].y}, {color.r, color.g, color.b, 1.0f}});
+        _text_vbo->add_data({{xpos+w, ypos+h}, {tex_coords[2].x, tex_coords[2].y}, {color.r, color.g, color.b, 1.0f}});
+        _text_vbo->add_data({{xpos+w, ypos  }, {tex_coords[3].x, tex_coords[3].y}, {color.r, color.g, color.b, 1.0f}});
 
         pos.x += (glyph.advance >> 6)*scale;
     }

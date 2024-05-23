@@ -49,6 +49,10 @@ void Game::run()
             }
         }
 
+        // for testing
+        //if (_input_manager.key_down(SDL_SCANCODE_Q)) {
+        //    dt *= 0.1f; // slow down
+        //}
         update(dt);
         _input_manager.update_prev_state();
 
@@ -108,6 +112,8 @@ void Game::render()
             _graphics.draw_text("YOU WON", {w*0.5f - 120.0f, h*0.5f}, {0,0,0});
         } break;
     }
+
+    _graphics.draw_text("Asteroids Left: " + std::to_string(_asteroids.size()), {0.0f, h-30}, {0,0,0}, 0.7f);
 
     _graphics.flush();
     _graphics.swap_buffers();
