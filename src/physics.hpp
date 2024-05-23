@@ -96,5 +96,8 @@ std::vector<Line> normal_lines_b;
 // check if two axis aligned rectangles collide
 bool aabb(const AABB_Collider& a, const AABB_Collider& b);
 
+// check if two circles collide
+bool circle_circle(glm::vec2 a, float a_radius, glm::vec2 b, float b_radius);
+
 // check if two convex polygons intersect
 bool sat(const std::vector<glm::vec2>& a, const std::vector<glm::vec2>& b);

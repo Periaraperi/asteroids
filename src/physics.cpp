@@ -17,6 +17,14 @@ bool aabb(const AABB_Collider &a, const AABB_Collider &b)
     return overlap_x && overlap_y;
 }
 
+bool circle_circle(glm::vec2 a, float a_radius, glm::vec2 b, float b_radius)
+{
+    auto x = a.x-b.x;
+    auto y = a.y-b.y;
+    auto dis = std::sqrt(x*x + y*y);
+    return dis <= a_radius + b_radius;
+}
+
 // poly points are in clockwise order.
 // rotation of edge vector is in anti-clockwise direction.
 // for collision check direction does not matter.
