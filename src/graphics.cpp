@@ -141,7 +141,7 @@ Graphics::Graphics(const Window_Settings& settings)
     init_circle_batch_data();
 
     //if (0)
-    {
+    { // STILL EXPERIMENTING. Convert to SDF rendering later for better flexibility
         // font related stuff here
         FT_Library ft;
         if (FT_Init_FreeType(&ft) != 0) {
@@ -179,7 +179,7 @@ Graphics::Graphics(const Window_Settings& settings)
                 face->glyph->advance.x,
                 {face->glyph->bitmap.width, face->glyph->bitmap.rows},
                 {face->glyph->bitmap_left, face->glyph->bitmap_top},
-                xoff, yoff
+                xoff, yoff // offset inside texture atlas
             };
 
             const auto& glyph = _glyphs[ch];
@@ -197,7 +197,6 @@ Graphics::Graphics(const Window_Settings& settings)
             for (std::size_t i{}; i<glyph_height; ++i) {
                 for (std::size_t j{}; j<glyph_width; ++j) {
                     reversed[glyph_width*(glyph_height-i-1)+j] = face->glyph->bitmap.buffer[glyph_width*i+j];
-                    //reversed[glyph_width*i+j] = face->glyph->bitmap.buffer[glyph_width*i+j];
                 }
             }
             

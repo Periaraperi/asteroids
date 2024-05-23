@@ -95,13 +95,11 @@ public:
                                                                                    
     void draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec4 color);
 
-    // draw Textured quad
-    void draw_rect(glm::vec2 pos, glm::vec2 size, glm::vec2 tex_coord);
-
     void draw_polygon(const std::vector<glm::vec2>& poly_points, glm::vec4 color);
 
     void draw_circle(glm::vec2 center, float radius, glm::vec4 color);
 
+    // for debug now. TODO: implement with shaders
     void draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color);
 
     void draw_text(const std::string& text, glm::vec2 pos, glm::vec3 color, float scale=1.0f);
@@ -130,18 +128,20 @@ private:
     
     // orthographic projection
     glm::mat4 _projection;
+
     glm::vec2 _text_atlas_size;
 
-    // shaders
     std::unique_ptr<Shader> _triangle_shader;
     std::unique_ptr<Shader> _circle_shader;
     std::unique_ptr<Shader> _line_shader;
     std::unique_ptr<Shader> _text_shader;
     std::unique_ptr<Shader> _texture_shader;
+
     std::unique_ptr<Texture> _text_atlas;
-    //std::unique_ptr<Texture> _test_texture;
     
     std::unordered_map<char, Glyph> _glyphs;
+
+    // vao, vbo, ibo information for batching
 
     std::unique_ptr<Vertex_Array> _triangle_batch_vao;
     std::unique_ptr<Vertex_Buffer<Simple_Vertex>> _triangle_batch_vbo;

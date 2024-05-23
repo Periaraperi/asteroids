@@ -6,7 +6,6 @@ in vec4 text_color;
 out vec4 final_color;
 
 uniform sampler2D u_text;
-//uniform vec3 u_color;
 
 void main()
 {
