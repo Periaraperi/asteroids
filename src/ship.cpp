@@ -2,14 +2,15 @@
 
 #include "graphics.hpp"
 #include "input_manager.hpp"
-#include "physics.hpp"
 
 #include <algorithm>
 
 #include <glm/gtc/matrix_transform.hpp>
 
 constexpr float ROTATION_SPEED = 180.0f;
-constexpr float ACCELERATION = 100.0f;
+constexpr float SPEED = 400.0f;
+float DECCELERATION_SPEED = 180.0f;
+bool first_move = false;
 
 std::vector<glm::vec2>
 init_ship_model()
@@ -24,7 +25,7 @@ init_ship_model()
 
 Ship::Ship(glm::vec2 world_pos)
     :_ship_model{init_ship_model()},
-     _transform{world_pos, {50.0f, 50.0f}, 0.0f},
+     _transform{world_pos, {25.0f, 20.0f}, 0.0f},
      _velocity{0.0f, 0.0f}
 {}
 
@@ -41,14 +42,19 @@ void Ship::update(Graphics& g, Input_Manager& im, float dt)
     }
 
     if (im.key_down(SDL_SCANCODE_W)) {
-        // modify this later
-        constexpr int SPEED = 450;
-        _transform.pos.x += std::cos(glm::radians(_transform.angle+90.0f))*SPEED*dt;
-        _transform.pos.y += std::sin(glm::radians(_transform.angle+90.0f))*SPEED*dt;
+        first_move = true;
+        DECCELERATION_SPEED = 180.0f; // reset
+        _velocity = get_direction_vector()*SPEED*dt;
+        _transform.pos += _velocity;
     }
-
-    //_pos.x += _velocity.x*dt;
-    //_pos.y += _velocity.y*dt;
+    else {
+        if (first_move) {
+            _velocity = get_direction_vector()*DECCELERATION_SPEED*dt;
+            _transform.pos += _velocity;
+            DECCELERATION_SPEED -= 7.0f*dt;
+            if (DECCELERATION_SPEED < 0.0f) DECCELERATION_SPEED = 0.0f;
+        }
+    }
 
     // screen wrap
     auto world_pos = get_points_in_world();

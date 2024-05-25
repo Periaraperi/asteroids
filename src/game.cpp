@@ -170,6 +170,8 @@ void Game::update_playing_state(float dt)
         }
 
         for (auto& b:_bullets) {
+            if (a.dead()) continue;
+            
             Polygon bullet_poly{b.get_world_points()};
             if (concave_sat(bullet_poly, asteroid_poly)) {
                 b.explode();

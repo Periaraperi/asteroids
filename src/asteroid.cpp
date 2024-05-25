@@ -7,9 +7,9 @@
 #include "graphics.hpp"
 
 std::array<float, 3> get_speed {
+    200.0f,
     150.0f,
-    100.0f,
-    50.0f
+    100.0f
 };
 
 std::random_device rd = std::random_device();
@@ -39,16 +39,13 @@ std::vector<std::vector<glm::vec2>> predefined_models = {
 };
 
 std::vector<glm::vec2> Asteroid::init_asteroid_model()
-{
-    auto i = get_int(0, predefined_models.size()-1);
-    return predefined_models[i];
-}
+{ return predefined_models[get_int(0, predefined_models.size()-1)]; }
 
 Asteroid::Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vector)
     :_type{asteroid_type},
      _transform{pos, {}, 0.0f},
      _velocity{dir_vector},
-     _angle_rotation_speed{get_float(20.0f, 30.0f)},
+     _angle_rotation_speed{get_float(20.0f, 35.0f)},
      _dead{false},
      _asteroid_model{init_asteroid_model()}
 {
@@ -112,9 +109,6 @@ glm::vec2 Asteroid::get_world_pos() const
 
 bool Asteroid::dead() const 
 { return _dead; }
-
-bool Asteroid::empty() const
-{ return _asteroid_model.empty(); }
 
 std::vector<glm::vec2> Asteroid::get_points_in_world() const
 {

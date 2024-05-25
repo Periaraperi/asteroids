@@ -3,8 +3,8 @@
 #include "graphics.hpp"
 
 // in world space
-constexpr float RADIUS = 7.0f;
-constexpr float SPEED = 600.0f;
+constexpr float RADIUS = 4.5f;
+constexpr float SPEED = 500.0f;
 
 Bullet::Bullet(glm::vec2 world_pos, glm::vec2 dir)
     :_pos{world_pos}, _dir_vector{dir}, _dead{false}

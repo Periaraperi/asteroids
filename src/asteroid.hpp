@@ -28,9 +28,6 @@ public:
     [[nodiscard]]
     bool dead() const;
 
-    [[nodiscard]]
-    bool empty() const;
-
     void explode();
 
     [[nodiscard]]
