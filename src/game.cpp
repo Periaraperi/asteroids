@@ -161,6 +161,7 @@ void Game::update_playing_state(float dt)
     // which later are moved into _asteroids member
     std::vector<Asteroid> new_asteroids;
 
+    // check collisions
     for (auto& a:_asteroids) {
         const Polygon asteroid_poly{a.get_points_in_world()};
 
@@ -175,12 +176,15 @@ void Game::update_playing_state(float dt)
             Polygon bullet_poly{b.get_world_points()};
             if (concave_sat(bullet_poly, asteroid_poly)) {
                 b.explode();
-                a.explode();
-                auto asteroids = a.split(); // vector of 0 or 3 or 6 asteroids
-                // move temporary smaller asteroids into new_asteroids
-                if (!asteroids.empty()) {
-                    for (auto& tmp:asteroids) {
-                        new_asteroids.emplace_back(std::move(tmp));
+                a.hit(); // deal damage
+                if (a.hp() == 0) {
+                    a.explode();
+                    auto asteroids = a.split(); // vector of 0 or 3 or 6 asteroids
+                    // move temporary smaller asteroids into new_asteroids
+                    if (!asteroids.empty()) {
+                        for (auto& tmp:asteroids) {
+                            new_asteroids.emplace_back(std::move(tmp));
+                        }
                     }
                 }
             }

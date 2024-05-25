@@ -28,7 +28,12 @@ public:
     [[nodiscard]]
     bool dead() const;
 
+    [[nodiscard]]
+    uint8_t hp() const;
+
     void explode();
+
+    void hit();
 
     [[nodiscard]]
     std::vector<glm::vec2> get_points_in_world() const;
@@ -47,6 +52,8 @@ private:
 
     glm::vec2 _velocity{};
     float _angle_rotation_speed{};
+
+    uint8_t _hp; // this many hits to destroy
     bool _dead{};
 
     std::vector<glm::vec2> _asteroid_model;

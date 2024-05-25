@@ -53,14 +53,17 @@ Asteroid::Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vec
         case Asteroid_Type::SMALL:
             _transform.scale = {50.0f, 50.0f};
             _velocity *= get_speed[int(Asteroid_Type::SMALL)];
+            _hp = 1;
             break;
         case Asteroid_Type::MEDIUM:
             _transform.scale = {100.0f, 100.0f};
             _velocity *= get_speed[int(Asteroid_Type::MEDIUM)];
+            _hp = 2;
             break;
         case Asteroid_Type::LARGE:
             _transform.scale = {150.0f, 150.0f};
             _velocity *= get_speed[int(Asteroid_Type::LARGE)];
+            _hp = 3;
             break;
         default:
             _transform.scale = {};
@@ -109,6 +112,12 @@ glm::vec2 Asteroid::get_world_pos() const
 
 bool Asteroid::dead() const 
 { return _dead; }
+
+uint8_t Asteroid::hp() const
+{ return _hp; }
+
+void Asteroid::hit()
+{ if (_hp > 0) --_hp; }
 
 std::vector<glm::vec2> Asteroid::get_points_in_world() const
 {
