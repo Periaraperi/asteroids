@@ -2,6 +2,7 @@
 
 #include "graphics.hpp"
 #include "input_manager.hpp"
+#include "physics.hpp"
 
 #include <algorithm>
 
@@ -74,9 +75,7 @@ void Ship::update(Graphics& g, Input_Manager& im, float dt)
 }
 
 void Ship::draw(Graphics& g) const
-{
-    g.draw_polygon(get_points_in_world(), {1.0f, 0.0f, 0.0f, 1.0f});
-}
+{ g.draw_polygon(get_points_in_world(), {1.0f, 0.0f, 0.0f, 1.0f}); }
 
 // returns world positions for polygon points
 // for physics.
@@ -93,6 +92,4 @@ std::vector<glm::vec2> Ship::get_points_in_world() const
 }
 
 glm::vec2 Ship::get_direction_vector() const
-{
-    return {std::cos(glm::radians(_transform.angle+90.0f)), std::sin(glm::radians(_transform.angle+90.0f))};
-}
+{ return {std::cos(glm::radians(_transform.angle+90.0f)), std::sin(glm::radians(_transform.angle+90.0f))}; }

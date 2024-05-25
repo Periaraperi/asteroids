@@ -33,7 +33,9 @@ std::vector<std::vector<glm::vec2>> predefined_models = {
     {{-0.35f, -0.25f}, {-0.55f, 0.25f}, {-0.27f, 0.75f}, {0.35f, 0.85f}, {0.45f, -0.30f}},
     {{-0.5f, -0.3f}, {-0.6f, 0.55f}, {0.0f, 0.75f}, {0.8f, 0.7f}, {0.8f, -0.35f}},
     {{0.0f, -0.6f}, {-0.8f, -0.2f}, {-0.6f, 0.8f}, {0.65f, 0.9f}, {0.75f, 0.55f}, {0.7f, -0.3f}},
-    {{-0.6f, -0.15f}, {-0.65f, 0.1f}, {-0.2f, 0.85f}, {0.5f, 1.0f}, {0.9f, 0.4f}, {0.7f, -0.1f}, {0.2f, -0.3f}}
+    {{-0.6f, -0.15f}, {-0.65f, 0.1f}, {-0.2f, 0.85f}, {0.5f, 1.0f}, {0.9f, 0.4f}, {0.7f, -0.1f}, {0.2f, -0.3f}},
+    {{-0.62f, 0.32f}, {-0.26f, 0.81f}, {0.63f, 0.52f}, {0.26f, 0.24f}, {0.45f, -0.42f}, {-0.63f, -0.20f}},
+    {{-0.72f, 0.07f}, {-0.22f, 0.80f}, {-0.08f, 0.18f}, {0.44f, 0.60f}, {0.69f, -0.80f}, {-0.86f, -0.82f}, {-0.49f, -0.20f}}
 };
 
 std::vector<glm::vec2> Asteroid::init_asteroid_model()
@@ -100,9 +102,7 @@ void Asteroid::update(Graphics& g, float dt)
 }
 
 void Asteroid::draw(Graphics& g) const
-{
-    g.draw_polygon(get_points_in_world(), {0.0f, 1.0f, 0.0f, 1.0f});
-}
+{ g.draw_polygon(get_points_in_world(), {0.0f, 1.0f, 0.0f, 1.0f}); }
 
 void Asteroid::explode()
 { _dead = true; }

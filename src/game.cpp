@@ -49,10 +49,12 @@ void Game::run()
             }
         }
 
-        // for testing
-        //if (_input_manager.key_down(SDL_SCANCODE_Q)) {
-        //    dt *= 0.1f; // slow down
-        //}
+        
+#ifdef PERIA_DEBUG // for testing
+        if (_input_manager.key_down(SDL_SCANCODE_Q)) {
+            dt *= 0.1f; // slow down
+        }
+#endif
         update(dt);
         _input_manager.update_prev_state();
 
@@ -84,8 +86,9 @@ void Game::render()
 {
     _graphics.clear_buffer();
     // DRAW CALLS HERE!
-    
+
     auto [w, h] = _graphics.get_window_size();
+
     switch(_state) {
         case Game_State::MAIN_MENU:
         {
@@ -142,8 +145,8 @@ void Game::update_playing_state(float dt)
 
     _ship->update(_graphics, _input_manager, dt);
 
-    auto ship_poly = _ship->get_points_in_world(); // concave, manually make 2 triangles
-    const auto& ship_tip = ship_poly[2]; // tip of ship in world space
+    Polygon ship_poly{_ship->get_points_in_world()};
+    const auto& ship_tip = ship_poly.points()[2]; // tip of ship in world space
 
     // shoot bullets
     if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
@@ -159,19 +162,16 @@ void Game::update_playing_state(float dt)
     std::vector<Asteroid> new_asteroids;
 
     for (auto& a:_asteroids) {
-        auto asteroid_points = a.get_points_in_world();
-        if (sat({ship_poly[0], ship_poly[1], ship_poly[2]}, asteroid_points)) {
-            _state = Game_State::DEAD;
-            return;
-        }
-        else if (sat({ship_poly[0], ship_poly[2], ship_poly[3]}, asteroid_points)) {
+        const Polygon asteroid_poly{a.get_points_in_world()};
+
+        if (concave_sat(ship_poly, asteroid_poly)) {
             _state = Game_State::DEAD;
             return;
         }
 
         for (auto& b:_bullets) {
-            auto bullet_points = b.get_world_points();
-            if (sat(bullet_points, asteroid_points)) {
+            Polygon bullet_poly{b.get_world_points()};
+            if (concave_sat(bullet_poly, asteroid_poly)) {
                 b.explode();
                 a.explode();
                 auto asteroids = a.split(); // vector of 0 or 3 or 6 asteroids

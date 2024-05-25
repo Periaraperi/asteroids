@@ -101,3 +101,86 @@ bool sat(const std::vector<glm::vec2>& a, const std::vector<glm::vec2>& b)
 
     return true;
 }
+
+// Function assumes that both polygons are simple and convex.
+// Caller must triangulate or modify polygons before calling 'sat()'.
+// Rotation of edge vector is in anti-clockwise direction.
+// Algorithm Does not consider collision resolution
+bool sat(const Polygon& poly1, const Polygon& poly2)
+{
+    // helper lambda to find interval extrema after projection
+    auto min_max_after_projection = [](const std::vector<glm::vec2>& points,
+                                       glm::vec2 axis) -> std::pair<float, float> {
+        auto mn = std::numeric_limits<float>::max();
+        auto mx = std::numeric_limits<float>::lowest();
+        
+        for (const auto& p:points) {
+            auto projected = glm::dot(axis, p);
+            mn = std::min(mn, projected);
+            mx = std::max(mx, projected);
+        }
+
+        return {mn, mx};
+    };
+
+    const auto& a = poly1.points();
+    const auto& b = poly2.points();
+
+    // test axis of polygon a
+    for (std::size_t i{}; i<a.size(); ++i) {
+        auto p1 = a[i];
+        auto p2 = a[(i+1)%a.size()];
+        
+        auto edge = p2 - p1;
+        glm::vec2 axis{-edge.y, edge.x}; // we rotate edge by 90 degrees to get normal vector
+
+        auto [min_a, max_a] = min_max_after_projection(a, axis);
+        auto [min_b, max_b] = min_max_after_projection(b, axis);
+
+        // no overlap
+        if ((max_a < min_b) || (max_b < min_a)) {
+            return false;
+        }
+
+    }
+    
+    // test axis of polygon b
+    for (std::size_t i{}; i<b.size(); ++i) {
+        auto p1 = b[i];
+        auto p2 = b[(i+1)%b.size()];
+        
+        glm::vec2 edge = p2 - p1;
+        glm::vec2 axis{-edge.y, edge.x}; // we rotate edge by 90 degrees to get normal vector
+
+        auto [min_a, max_a] = min_max_after_projection(a, axis);
+        auto [min_b, max_b] = min_max_after_projection(b, axis);
+        
+        if ((max_a < min_b) || (max_b < min_a)) {
+            return false;
+        }
+
+    }
+
+    return true;
+}
+
+bool concave_sat(const Polygon& a, const Polygon& b)
+{
+    std::vector<Polygon> as {a};
+    if (!a.is_convex()) {
+        as = a.triangulate(false);
+    }
+    std::vector<Polygon> bs {b};
+    if (!b.is_convex()) {
+        bs = b.triangulate(false);
+    }
+
+    for (const auto& part_a:as) {
+        for (const auto& part_b:bs) {
+            if (sat(part_a, part_b)) 
+                return true;
+        }
+    }
+    
+    return false;
+}

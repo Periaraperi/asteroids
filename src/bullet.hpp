@@ -16,10 +16,12 @@ public:
     std::vector<glm::vec2> get_world_points() const;
 
     [[nodiscard]]
-    glm::vec2 get_world_pos() const { return _pos; }
+    glm::vec2 get_world_pos() const 
+    { return _pos; }
 
     [[nodiscard]]
-    bool dead() const { return _dead; }
+    bool dead() const 
+    { return _dead; }
 
     void explode();
 

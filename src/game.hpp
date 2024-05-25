@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include "asteroid.hpp"
 
 class Graphics;
 class Input_Manager;

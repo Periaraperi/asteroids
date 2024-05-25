@@ -15,6 +15,7 @@
 
 #include "shader.hpp"
 #include "texture.hpp"
+#include "physics.hpp"
 
 constexpr int MAX_TRIANGLE_COUNT = 4096*2; // this many triangles per batch
 constexpr int MAX_RECT_COUNT = 4096;
@@ -383,10 +384,9 @@ void Graphics::draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color)
 void Graphics::draw_polygon(const std::vector<glm::vec2>& poly_points, glm::vec4 color)
 {
     PERIA_ASSERT(poly_points.size() >= 3, "poly must have at least 3 points");
-    for (std::size_t i=1; i<poly_points.size()-1; ++i) {
-        _triangle_batch_vbo->add_data({poly_points[0],   color});
-        _triangle_batch_vbo->add_data({poly_points[i],   color});
-        _triangle_batch_vbo->add_data({poly_points[i+1], color});
+    auto tris = Polygon{poly_points}.triangulate(true);
+    for (auto&& t:tris) {
+        draw_triangle(t.points()[0], t.points()[1], t.points()[2], color);
     }
 }
 
