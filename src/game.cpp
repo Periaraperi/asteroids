@@ -14,9 +14,13 @@
 
 Game::Game(Graphics& graphics, Input_Manager& input_manager)
     :_running{true}, _state{Game_State::MAIN_MENU},
-     _graphics{graphics}, _input_manager{input_manager}
+     _graphics{graphics}, _input_manager{input_manager}, _level_id{0}
 {
     _bullets.reserve(512); // reserve some space since we know we will shoot a lot
+    _level_init_calls.reserve(10);
+    _level_init_calls.push_back(std::bind(&Game::init_level1, this));
+    _level_init_calls.push_back(std::bind(&Game::init_level2, this));
+    _level_init_calls.push_back(std::bind(&Game::init_level3, this));
 
     PERIA_LOG("Game ctor()");
 }
@@ -129,7 +133,7 @@ void Game::render()
 void Game::update_main_menu_state()
 {
     if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
-        init_level();
+        _level_init_calls[_level_id]();
         _state = Game_State::PLAYING;
     }
     if (_input_manager.key_pressed(SDL_SCANCODE_ESCAPE)) {
@@ -211,7 +215,8 @@ void Game::update_playing_state(float dt)
 void Game::update_dead_state()
 {
     if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
-        init_level();
+        _level_id = 0;
+        _level_init_calls[_level_id]();
         _state = Game_State::PLAYING;
     }
     if (_input_manager.key_pressed(SDL_SCANCODE_ESCAPE)) {
@@ -222,8 +227,13 @@ void Game::update_dead_state()
 void Game::update_won_state()
 {
     if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
-        // TODO: next level 
-        init_level();
+        ++_level_id;
+        if (_level_id == _level_init_calls.size()) {
+            PERIA_LOG("WON WON WON!");
+            _running = false;
+            return;
+        }
+        _level_init_calls[_level_id]();
         _state = Game_State::PLAYING;
     }
     if (_input_manager.key_pressed(SDL_SCANCODE_ESCAPE)) {
@@ -231,7 +241,7 @@ void Game::update_won_state()
     }
 }
 
-void Game::init_level()
+void Game::init_level1()
 {
     auto [w, h] = _graphics.get_window_size();
 
@@ -242,9 +252,58 @@ void Game::init_level()
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
                             glm::vec2{350.0f, 600.0f},
-                            glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))});
+                            glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 1);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
                             glm::vec2{_graphics.get_window_size().first-350.0f, 600.0f},
-                            glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))});
+                            glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 1);
+}
+
+void Game::init_level2()
+{
+    auto [w, h] = _graphics.get_window_size();
+
+    _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
+    
+    _asteroids.clear();
+    _bullets.clear();
+
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
+                            glm::vec2{350.0f, 600.0f},
+                            glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 2);
+
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
+                            glm::vec2{_graphics.get_window_size().first-350.0f, 600.0f},
+                            glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 2);
+
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
+                            glm::vec2{w*0.5f, h*0.5f-300.0f},
+                            _ship->get_direction_vector(), 2);
+}
+
+void Game::init_level3()
+{
+    auto [w, h] = _graphics.get_window_size();
+
+    _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
+    auto ship_dir = _ship->get_direction_vector();
+    
+    _asteroids.clear();
+    _bullets.clear();
+
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
+                            glm::vec2{350.0f, 600.0f},
+                            glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 3);
+
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
+                            glm::vec2{_graphics.get_window_size().first-350.0f, 600.0f},
+                            glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 3);
+
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
+                            glm::vec2{w*0.5f, h*0.5f-300.0f},
+                            ship_dir, 3);
+
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
+                            glm::vec2{w*0.5f, h*0.5f+300.0f},
+                            glm::vec2{ship_dir.x, -ship_dir.y}, 3);
 }

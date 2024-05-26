@@ -41,29 +41,37 @@ std::vector<std::vector<glm::vec2>> predefined_models = {
 std::vector<glm::vec2> Asteroid::init_asteroid_model()
 { return predefined_models[get_int(0, predefined_models.size()-1)]; }
 
-Asteroid::Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vector)
+Asteroid::Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vector,
+                   uint8_t level_id)
     :_type{asteroid_type},
      _transform{pos, {}, 0.0f},
      _velocity{dir_vector},
      _angle_rotation_speed{get_float(20.0f, 35.0f)},
-     _dead{false},
+     _level_id{level_id}, _dead{false}, 
      _asteroid_model{init_asteroid_model()}
 {
+    auto largest_hp = [this]() -> uint8_t {
+        if (_level_id == 1) return 3;
+        if (_level_id >= 2 && _level_id <= 3) return 4;
+        if (_level_id >= 4 && _level_id <= 5) return 6;
+        return 0;
+    }();
+
     switch (_type) {
         case Asteroid_Type::SMALL:
             _transform.scale = {50.0f, 50.0f};
             _velocity *= get_speed[int(Asteroid_Type::SMALL)];
-            _hp = 1;
+            _hp = largest_hp-2;
             break;
         case Asteroid_Type::MEDIUM:
             _transform.scale = {100.0f, 100.0f};
             _velocity *= get_speed[int(Asteroid_Type::MEDIUM)];
-            _hp = 2;
+            _hp = largest_hp-1;
             break;
         case Asteroid_Type::LARGE:
             _transform.scale = {150.0f, 150.0f};
             _velocity *= get_speed[int(Asteroid_Type::LARGE)];
-            _hp = 3;
+            _hp = largest_hp;
             break;
         default:
             _transform.scale = {};
@@ -102,7 +110,10 @@ void Asteroid::update(Graphics& g, float dt)
 }
 
 void Asteroid::draw(Graphics& g) const
-{ g.draw_polygon(get_points_in_world(), {0.0f, 1.0f, 0.0f, 1.0f}); }
+{ 
+    g.draw_polygon(get_points_in_world(), {0.0f, 1.0f, 0.0f, 1.0f}); 
+    g.draw_text(std::to_string(_hp), _transform.pos, {0.2f, 0.2f, 0.4f}, 0.5f);
+}
 
 void Asteroid::explode()
 { _dead = true; }
@@ -144,7 +155,7 @@ std::vector<Asteroid> Asteroid::split()
                 auto angle = 360.0f / 6;
                 for (std::size_t i{}; i<6; ++i) {
                     asteroids.emplace_back(Asteroid_Type::SMALL, _transform.pos, 
-                            glm::vec2{std::cos(glm::radians(i*angle)), std::sin(glm::radians(i*angle))});
+                            glm::vec2{std::cos(glm::radians(i*angle)), std::sin(glm::radians(i*angle))}, _level_id);
                 }
                 break;
             }
@@ -153,7 +164,7 @@ std::vector<Asteroid> Asteroid::split()
                 auto angle = 360.0f / 3;
                 for (std::size_t i{}; i<3; ++i) {
                     asteroids.emplace_back(Asteroid_Type::MEDIUM, _transform.pos, 
-                            glm::vec2{std::cos(glm::radians(i*angle)), std::sin(glm::radians(i*angle))});
+                            glm::vec2{std::cos(glm::radians(i*angle)), std::sin(glm::radians(i*angle))}, _level_id);
                 }
                 break;
             }

@@ -17,7 +17,7 @@ public:
 
     // pos - initial world pos.
     // dir_vector - normalized direction vector.
-    Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vector);
+    Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vector, uint8_t level_id);
 
     void update(Graphics& g, float dt);
     void draw(Graphics& g) const;
@@ -54,6 +54,7 @@ private:
     float _angle_rotation_speed{};
 
     uint8_t _hp; // this many hits to destroy
+    uint8_t _level_id;
     bool _dead{};
 
     std::vector<glm::vec2> _asteroid_model;

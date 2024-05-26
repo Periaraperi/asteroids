@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <vector>
 #include "asteroid.hpp"
@@ -34,7 +35,11 @@ private:
     void update_won_state();
 
     // TODO: in the future add more levels with different difficulty and variation.
-    void init_level();
+    void init_level1();
+    void init_level2();
+    void init_level3();
+    void init_level4();
+    void init_level5();
 private:
     bool _running;
     Game_State _state;
@@ -44,6 +49,9 @@ private:
     std::unique_ptr<Ship> _ship;
     std::vector<Asteroid> _asteroids;
     std::vector<Bullet> _bullets;
+
+    std::size_t _level_id;
+    std::vector<std::function<void()>> _level_init_calls;
 
 public:
     // disable copy move ops
