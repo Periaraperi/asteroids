@@ -111,7 +111,7 @@ void Asteroid::update(Graphics& g, float dt)
 
 void Asteroid::draw(Graphics& g) const
 { 
-    g.draw_polygon(get_points_in_world(), {0.0f, 1.0f, 0.0f, 1.0f}); 
+    g.draw_polygon(get_points_in_world(), {0.8f, 0.8f, 0.8f, 1.0f}); 
     g.draw_text(std::to_string(_hp), _transform.pos, {0.2f, 0.2f, 0.4f}, 0.5f);
 }
 

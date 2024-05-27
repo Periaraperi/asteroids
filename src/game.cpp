@@ -88,6 +88,7 @@ void Game::update(float dt)
 
 void Game::render()
 {
+    glm::vec3 text_color{1.0f, 1.0f, 1.0f};
     _graphics.clear_buffer();
     // DRAW CALLS HERE!
 
@@ -96,7 +97,7 @@ void Game::render()
     switch(_state) {
         case Game_State::MAIN_MENU:
         {
-            _graphics.draw_text("Asteroids", {w*0.5f - 120.0f, h*0.5f}, {0,0,0});
+            _graphics.draw_text("Asteroids", {w*0.5f - 120.0f, h*0.5f}, text_color);
         } break;
         case Game_State::PLAYING:
         {
@@ -112,15 +113,15 @@ void Game::render()
         } break;
         case Game_State::DEAD:
         {
-            _graphics.draw_text("YOU LOST", {w*0.5f - 120.0f, h*0.5f}, {0,0,0});
+            _graphics.draw_text("YOU LOST", {w*0.5f - 120.0f, h*0.5f}, text_color);
         } break;
         case Game_State::WON:
         {
-            _graphics.draw_text("YOU WON", {w*0.5f - 120.0f, h*0.5f}, {0,0,0});
+            _graphics.draw_text("YOU WON", {w*0.5f - 120.0f, h*0.5f}, text_color);
         } break;
     }
 
-    _graphics.draw_text("Asteroids Left: " + std::to_string(_asteroids.size()), {0.0f, h-30}, {0,0,0}, 0.7f);
+    _graphics.draw_text("Asteroids Left: " + std::to_string(_asteroids.size()), {0.0f, h-30}, text_color, 0.7f);
 
     _graphics.flush();
     _graphics.swap_buffers();

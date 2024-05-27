@@ -81,7 +81,7 @@ void Ship::update(Graphics& g, Input_Manager& im, float dt)
 }
 
 void Ship::draw(Graphics& g) const
-{ g.draw_polygon(get_points_in_world(), {1.0f, 0.0f, 0.0f, 1.0f}); }
+{ g.draw_polygon(get_points_in_world(), {0.55f, 0.3f, 0.8f, 1.0f}); }
 
 // returns world positions for polygon points
 // for physics.

@@ -23,7 +23,7 @@ void Bullet::update(Graphics& g, float dt)
 
 void Bullet::draw(Graphics& g) const
 {
-    g.draw_rect({_pos.x-RADIUS, _pos.y+RADIUS}, {2*RADIUS, 2*RADIUS}, {0.5f, 0.5f, 0.0f, 1.0f});
+    g.draw_rect({_pos.x-RADIUS, _pos.y+RADIUS}, {2*RADIUS, 2*RADIUS}, {0.5f, 0.6f, 0.7f, 1.0f});
     //g.draw_circle({_pos.x-RADIUS, _pos.y+RADIUS}, RADIUS, {0.5f, 0.5f, 0.0f, 1.0f});
 }
 
