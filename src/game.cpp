@@ -89,10 +89,12 @@ void Game::update(float dt)
 void Game::render()
 {
     glm::vec3 text_color{1.0f, 1.0f, 1.0f};
-    _graphics.clear_buffer();
+    //_graphics.clear_buffer(); move to bottom
+    _graphics.bind_fbo(); // draw to offscreen texture
+
     // DRAW CALLS HERE!
 
-    auto [w, h] = _graphics.get_window_size();
+    auto [w, h] = get_world_size();
 
     switch(_state) {
         case Game_State::MAIN_MENU:
@@ -123,7 +125,10 @@ void Game::render()
 
     _graphics.draw_text("Asteroids Left: " + std::to_string(_asteroids.size()), {0.0f, h-30}, text_color, 0.7f);
 
-    _graphics.flush();
+    _graphics.flush(); // actually draws stuff to separate fbo color attachment
+
+    _graphics.render_to_screen();
+
     _graphics.swap_buffers();
 }
 
@@ -244,7 +249,7 @@ void Game::update_won_state()
 
 void Game::init_level1()
 {
-    auto [w, h] = _graphics.get_window_size();
+    auto [w, h] = get_world_size();
 
     _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
     
@@ -256,13 +261,13 @@ void Game::init_level1()
                             glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 1);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
-                            glm::vec2{_graphics.get_window_size().first-350.0f, 600.0f},
+                            glm::vec2{get_world_size().first-350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 1);
 }
 
 void Game::init_level2()
 {
-    auto [w, h] = _graphics.get_window_size();
+    auto [w, h] = get_world_size();
 
     _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
     
@@ -274,7 +279,7 @@ void Game::init_level2()
                             glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 2);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
-                            glm::vec2{_graphics.get_window_size().first-350.0f, 600.0f},
+                            glm::vec2{get_world_size().first-350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 2);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
@@ -284,7 +289,7 @@ void Game::init_level2()
 
 void Game::init_level3()
 {
-    auto [w, h] = _graphics.get_window_size();
+    auto [w, h] = get_world_size();
 
     _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
     auto ship_dir = _ship->get_direction_vector();
@@ -297,7 +302,7 @@ void Game::init_level3()
                             glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 3);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
-                            glm::vec2{_graphics.get_window_size().first-350.0f, 600.0f},
+                            glm::vec2{get_world_size().first-350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 3);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,

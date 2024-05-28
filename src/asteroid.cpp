@@ -93,7 +93,10 @@ void Asteroid::update(Graphics& g, float dt)
     auto min_y = std::min_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.y<b.y;})->y;
     auto max_y = std::max_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.y<b.y;})->y;
     
-    auto [sw, sh] = g.get_window_size();
+    //auto [sw, sh] = g.get_window_size();
+    auto sw = 1600;
+    auto sh = 900;
+
     if (min_x > sw) {
         _transform.pos.x -= (sw+max_x-min_x);
     }

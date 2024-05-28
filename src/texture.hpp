@@ -11,6 +11,9 @@ public:
     // Create texture of arbitrary size
     Texture(uint32_t width, uint32_t height, int32_t internal_format, uint32_t format);
 
+    // for framebuffer.
+    Texture(uint32_t width, uint32_t height);
+
     ~Texture();
 
     void bind(uint8_t tex_slot=0) const;
@@ -18,6 +21,12 @@ public:
     void write_sub_texture(uint32_t xoffset, uint32_t yoffset,
                            uint32_t width, uint32_t height,
                            const void* data);
+    [[nodiscard]] uint32_t get_id() 
+    { return _tex; }
+
+    [[nodiscard]]
+    std::pair<uint32_t, uint32_t> get_dimensions()
+    { return {_width, _height}; }
 private:
     uint32_t _tex; // gl texture id
 

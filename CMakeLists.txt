@@ -18,6 +18,7 @@ set(SRCS
     ${SRC_DIR}/shader.cpp
     ${SRC_DIR}/opengl_errors.cpp
     ${SRC_DIR}/physics.cpp
+    ${SRC_DIR}/framebuffer.cpp
 
     # game specific
     ${SRC_DIR}/game.cpp

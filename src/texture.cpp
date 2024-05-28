@@ -42,6 +42,25 @@ Texture::Texture(uint32_t width, uint32_t height, int32_t internal_format, uint3
     GL_CALL(glPixelStorei(GL_UNPACK_ALIGNMENT, 4));
 }
 
+
+Texture::Texture(uint32_t width, uint32_t height)
+    :_width{width}, _height{height}
+{
+    PERIA_LOG("FrameBuffer Texture Ctor()");
+
+    GL_CALL(glGenTextures(1, &_tex));
+    bind();
+    
+    GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
+                         0, GL_RGBA, GL_UNSIGNED_BYTE, 
+                         nullptr));
+
+    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+
+    GL_CALL(glBindTexture(GL_TEXTURE_2D, 0)); // unbind
+}
+
 Texture::~Texture()
 {
     PERIA_LOG("Texture Cleanup");

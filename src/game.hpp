@@ -34,6 +34,10 @@ private:
     void update_dead_state();
     void update_won_state();
 
+    [[nodiscard]]
+    std::pair<uint32_t, uint32_t> get_world_size()
+    { return {1600, 900}; }
+
     // TODO: in the future add more levels with different difficulty and variation.
     void init_level1();
     void init_level2();

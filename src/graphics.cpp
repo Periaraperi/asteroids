@@ -74,7 +74,10 @@ void Graphics::init_circle_batch_data()
 Graphics::Graphics(const Window_Settings& settings)
     :_window{nullptr}, _context{nullptr}, 
     _settings{settings},
-    _projection{glm::mat4(1.0f)}
+    _projection{glm::mat4{1.0f}},
+    _game_world_projection{glm::ortho(0.0f, static_cast<float>(1600.0f), 
+                             0.0f, static_cast<float>(900.0f),
+                             -1.0f, 1.0f)}
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         PERIA_LOG(SDL_GetError());
@@ -129,6 +132,15 @@ Graphics::Graphics(const Window_Settings& settings)
     _line_shader = std::make_unique<Shader>("res/shaders/line_vert.glsl", "res/shaders/line_frag.glsl");
     _text_shader = std::make_unique<Shader>("res/shaders/text_vert.glsl", "res/shaders/text_frag.glsl");
     _texture_shader = std::make_unique<Shader>("res/shaders/texture_vert.glsl", "res/shaders/texture_frag.glsl");
+
+
+    // 1600 900 is game world
+    _fbo = std::make_unique<Frame_Buffer>(1600, 900);
+    _texture_shader->bind();
+    _texture_shader->set_int("u_texture", 0);
+    _texture_shader->unbind();
+
+    set_viewport(); // reset back 
 
     // general ibo here, unbind and bind on each setup of vao
     // below vaos share one ibo
@@ -236,6 +248,38 @@ Graphics::Graphics(const Window_Settings& settings)
         _text_vao->set_layout();
     }
 
+    { // screen framebuffer
+        _screen_vao = std::make_unique<Vertex_Array>();
+        std::vector<Screen_Vertex> screen_quad_data {
+            {{-1.0f, -1.0f}, {0.0f, 0.0f}},
+            {{-1.0f, 1.0f}, {0.0f, 1.0f}},
+            {{1.0f, 1.0f}, {1.0f, 1.0f}},
+
+            {{-1.0f, -1.0f}, {0.0f, 0.0f}},
+            {{1.0f, 1.0f}, {1.0f, 1.0f}},
+            {{1.0f, -1.0f}, {1.0f, 0.0f}},
+        };
+
+        //std::vector<Screen_Vertex> screen_quad_data {
+        //    {{-800.0f, -450.0f}, {0.0f, 0.0f}},
+        //    {{-800.0f, 450.0f}, {0.0f, 1.0f}},
+        //    {{800.0f, 450.0f}, {1.0f, 1.0f}},
+
+        //    {{-800.0f, -450.0f}, {0.0f, 0.0f}},
+        //    {{800.0f, 450.0f}, {1.0f, 1.0f}},
+        //    {{800.0f, -450.0f}, {1.0f, 0.0f}},
+        //};
+
+        _screen_vbo = std::make_unique<Vertex_Buffer<Screen_Vertex>>(screen_quad_data);
+        // quad pos
+        _screen_vao->add_attribute(2, GL_FLOAT, false, sizeof(Screen_Vertex));
+        // tex coords
+        _screen_vao->add_attribute(2, GL_FLOAT, false, sizeof(Screen_Vertex));
+        _screen_vao->set_layout();
+        _screen_vao->unbind();
+    }
+
+
     PERIA_LOG("Graphics ctor()");
 }
 
@@ -284,6 +328,40 @@ void Graphics::clear_buffer()
 {
     GL_CALL(glClearColor(_r, _g, _b, _a));
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
+}
+
+// something is fucked
+void Graphics::render_to_screen()
+{
+    _fbo->unbind(); // bind default frame buffer
+    set_viewport();
+    clear_buffer();
+    _texture_shader->bind();
+    // test shit
+    PERIA_LOG("DIM ", _settings.width, " ", _settings.height, " yle ", 
+            _settings.width/1600.0f, " ", _settings.height/900.0f);
+    //glm::mat4 scale = glm::scale(glm::mat4{1.0f}, glm::vec3{_settings.width/1600.0f, _settings.height/900.0f, 1.0f});
+    float x,y;
+    if (_settings.width < 1600.0f) {
+        x = _settings.width/1600.0f;
+    } 
+    else {
+        x = 1600.0f/_settings.width;
+    }
+
+    if (_settings.height < 900.0f) {
+        y = _settings.height/900.0f;
+    } 
+    else {
+        y = 900.0f/_settings.height;
+    }
+
+    glm::mat4 scale = glm::scale(glm::mat4{1.0f}, glm::vec3{_settings.width/2, _settings.height/2, 1.0f});
+    glm::mat4 trans = glm::translate(glm::mat4{1.0f}, glm::vec3{_settings.width/2, _settings.height/2, 0.0f});
+    _texture_shader->set_mat4("u_mvp", _projection*(trans*scale));
+    _screen_vao->bind();
+    _fbo->bind_color_texture();
+    GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 6));
 }
 
 void Graphics::swap_buffers()
@@ -475,7 +553,7 @@ void Graphics::render_triangles()
     _triangle_batch_vao->bind();
     _triangle_batch_vbo->bind();
     _triangle_shader->bind();
-    _triangle_shader->set_mat4("u_mvp", _projection);
+    _triangle_shader->set_mat4("u_mvp", _game_world_projection);
 
     while (count > 0) {
         int c = 0; // count of triangles for each batch
@@ -506,7 +584,7 @@ void Graphics::render_rects()
     _rect_batch_vbo->bind();
     // just reuse tri shader
     _triangle_shader->bind();
-    _triangle_shader->set_mat4("u_mvp", _projection);
+    _triangle_shader->set_mat4("u_mvp", _game_world_projection);
     
     while (count > 0) {
         int c = 0; // count of rects for each batch
@@ -538,7 +616,7 @@ void Graphics::render_circles()
     _circle_batch_vbo->bind();
 
     _circle_shader->bind();
-    _circle_shader->set_mat4("u_mvp", _projection);
+    _circle_shader->set_mat4("u_mvp", _game_world_projection);
     
     while (count > 0) {
         int c = 0; // count of rects for each batch
@@ -570,7 +648,7 @@ void Graphics::render_text()
     _text_vbo->bind();
     // just reuse tri shader
     _text_shader->bind();
-    _text_shader->set_mat4("u_mvp", _projection);
+    _text_shader->set_mat4("u_mvp", _game_world_projection);
     _text_atlas->bind();
     
     while (count > 0) {

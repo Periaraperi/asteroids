@@ -14,7 +14,9 @@ void Bullet::update(Graphics& g, float dt)
 {
     _pos += _dir_vector*SPEED*dt;
 
-    auto [w, h] = g.get_window_size();
+    //auto [w, h] = g.get_window_size();
+    auto w = 1600;
+    auto h = 900;
     if (_pos.x-RADIUS > w || _pos.x+RADIUS < 0.0f ||
         _pos.y-RADIUS > h || _pos.y+RADIUS < 0.0f) {
         _dead = true;

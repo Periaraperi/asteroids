@@ -9,6 +9,7 @@
 #include <glm/vec2.hpp>
 
 #include "vertex_buffer.hpp"
+#include "framebuffer.hpp"
 
 // forward declare
 typedef struct SDL_Window SDL_Window;
@@ -32,6 +33,11 @@ struct Window_Settings {
                     bool fullscreen_, bool resizable_)
         :title{title_}, width{width_}, height{height_}, fullscreen{fullscreen_}, resizable{resizable_}
     {}
+};
+
+struct Screen_Vertex {
+    glm::vec2 pos;
+    glm::vec2 tex_coord;
 };
 
 struct Simple_Vertex {
@@ -72,6 +78,12 @@ public:
     void clear_buffer();
     void swap_buffers();
     void flush();
+
+    // fbo stuff
+    void bind_fbo()
+    { _fbo->bind(); }
+
+    void render_to_screen();
 
     // SDL Window related functions
     void set_window_size(int w, int h);
@@ -128,6 +140,7 @@ private:
     
     // orthographic projection
     glm::mat4 _projection;
+    glm::mat4 _game_world_projection;
 
     glm::vec2 _text_atlas_size;
 
@@ -140,6 +153,8 @@ private:
     std::unique_ptr<Texture> _text_atlas;
     
     std::unordered_map<char, Glyph> _glyphs;
+
+    std::unique_ptr<Frame_Buffer> _fbo;
 
     // vao, vbo, ibo information for batching
 
@@ -156,6 +171,9 @@ private:
     std::unique_ptr<Vertex_Buffer<Rect_Vertex>> _text_vbo;
 
     std::unique_ptr<Index_Buffer> _ibo;
+
+    std::unique_ptr<Vertex_Array> _screen_vao;
+    std::unique_ptr<Vertex_Buffer<Screen_Vertex>> _screen_vbo;
 
     void init_circle_batch_data();
     void init_triangle_batch_data();
