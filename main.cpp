@@ -7,7 +7,7 @@
 
 int main()
 {
-    Graphics graphics{Window_Settings{"asteroids", 1600, 900, false, true}};
+    Graphics graphics{Window_Settings{"asteroids", 1600, 900, false, false}};
     graphics.set_clear_color(1.0f, 1.0f, 1.0f, 1.0f);
     graphics.vsync(false);
 

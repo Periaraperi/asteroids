@@ -119,7 +119,7 @@ public:
 private:
     void cleanup();
 
-    void set_viewport();
+    void set_window_viewport();
 
     // render functions that do actual draw calls on batched data
 

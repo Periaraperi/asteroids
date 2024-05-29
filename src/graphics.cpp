@@ -118,8 +118,6 @@ Graphics::Graphics(const Window_Settings& settings)
         std::exit(EXIT_FAILURE);
     }
 
-    set_viewport();
-
     // vsync on by default
     vsync(true);
 
@@ -133,14 +131,13 @@ Graphics::Graphics(const Window_Settings& settings)
     _text_shader = std::make_unique<Shader>("res/shaders/text_vert.glsl", "res/shaders/text_frag.glsl");
     _texture_shader = std::make_unique<Shader>("res/shaders/texture_vert.glsl", "res/shaders/texture_frag.glsl");
 
-
     // 1600 900 is game world
     _fbo = std::make_unique<Frame_Buffer>(1600, 900);
     _texture_shader->bind();
     _texture_shader->set_int("u_texture", 0);
     _texture_shader->unbind();
 
-    set_viewport(); // reset back 
+    set_window_viewport(); // actual window viewport
 
     // general ibo here, unbind and bind on each setup of vao
     // below vaos share one ibo
@@ -198,10 +195,10 @@ Graphics::Graphics(const Window_Settings& settings)
             const auto& glyph = _glyphs[ch];
             max_y = std::max(max_y, glyph.size.y);
 
-            std::cerr << ch << " info: ";
-            std::cerr << glyph.advance << " " << glyph.size.x << " "
-                      << glyph.size.y << " " << glyph.bearing.x << " " << glyph.bearing.y << " "
-                      << xoff << " " << yoff << '\n';
+            PERIA_LOG(ch," info: ");
+            PERIA_LOG(glyph.advance, " ", glyph.size.x , " "
+                      , glyph.size.y , " " , glyph.bearing.x , " " , glyph.bearing.y , " "
+                      , xoff , " " , yoff , '\n');
             //continue;
             auto glyph_width = face->glyph->bitmap.width;
             auto glyph_height = face->glyph->bitmap.rows;
@@ -251,24 +248,14 @@ Graphics::Graphics(const Window_Settings& settings)
     { // screen framebuffer
         _screen_vao = std::make_unique<Vertex_Array>();
         std::vector<Screen_Vertex> screen_quad_data {
-            {{-1.0f, -1.0f}, {0.0f, 0.0f}},
-            {{-1.0f, 1.0f}, {0.0f, 1.0f}},
-            {{1.0f, 1.0f}, {1.0f, 1.0f}},
+            {{-0.5f, -0.5f}, {0.0f, 0.0f}},
+            {{-0.5f, 0.5f}, {0.0f, 1.0f}},
+            {{0.5f, 0.5f}, {1.0f, 1.0f}},
 
-            {{-1.0f, -1.0f}, {0.0f, 0.0f}},
-            {{1.0f, 1.0f}, {1.0f, 1.0f}},
-            {{1.0f, -1.0f}, {1.0f, 0.0f}},
+            {{-0.5f, -0.5f}, {0.0f, 0.0f}},
+            {{0.5f, 0.5f}, {1.0f, 1.0f}},
+            {{0.5f, -0.5f}, {1.0f, 0.0f}},
         };
-
-        //std::vector<Screen_Vertex> screen_quad_data {
-        //    {{-800.0f, -450.0f}, {0.0f, 0.0f}},
-        //    {{-800.0f, 450.0f}, {0.0f, 1.0f}},
-        //    {{800.0f, 450.0f}, {1.0f, 1.0f}},
-
-        //    {{-800.0f, -450.0f}, {0.0f, 0.0f}},
-        //    {{800.0f, 450.0f}, {1.0f, 1.0f}},
-        //    {{800.0f, -450.0f}, {1.0f, 0.0f}},
-        //};
 
         _screen_vbo = std::make_unique<Vertex_Buffer<Screen_Vertex>>(screen_quad_data);
         // quad pos
@@ -278,7 +265,8 @@ Graphics::Graphics(const Window_Settings& settings)
         _screen_vao->set_layout();
         _screen_vao->unbind();
     }
-
+    
+    SDL_ShowCursor(SDL_DISABLE);
 
     PERIA_LOG("Graphics ctor()");
 }
@@ -306,7 +294,7 @@ void Graphics::cleanup()
     SDL_Quit();
 }
 
-void Graphics::set_viewport()
+void Graphics::set_window_viewport()
 {
     PERIA_LOG("Setting Viewport");
     const auto& s = _settings;
@@ -330,35 +318,17 @@ void Graphics::clear_buffer()
     GL_CALL(glClear(GL_COLOR_BUFFER_BIT));
 }
 
-// something is fucked
+// will scale game world texture to screen by stretching in both directions
 void Graphics::render_to_screen()
 {
     _fbo->unbind(); // bind default frame buffer
-    set_viewport();
+    GL_CALL(glViewport(0, 0, _settings.width, _settings.height));
     clear_buffer();
     _texture_shader->bind();
-    // test shit
-    PERIA_LOG("DIM ", _settings.width, " ", _settings.height, " yle ", 
-            _settings.width/1600.0f, " ", _settings.height/900.0f);
-    //glm::mat4 scale = glm::scale(glm::mat4{1.0f}, glm::vec3{_settings.width/1600.0f, _settings.height/900.0f, 1.0f});
-    float x,y;
-    if (_settings.width < 1600.0f) {
-        x = _settings.width/1600.0f;
-    } 
-    else {
-        x = 1600.0f/_settings.width;
-    }
 
-    if (_settings.height < 900.0f) {
-        y = _settings.height/900.0f;
-    } 
-    else {
-        y = 900.0f/_settings.height;
-    }
-
-    glm::mat4 scale = glm::scale(glm::mat4{1.0f}, glm::vec3{_settings.width/2, _settings.height/2, 1.0f});
-    glm::mat4 trans = glm::translate(glm::mat4{1.0f}, glm::vec3{_settings.width/2, _settings.height/2, 0.0f});
-    _texture_shader->set_mat4("u_mvp", _projection*(trans*scale));
+    glm::mat4 screen_quad_model = glm::translate(glm::mat4{1.0f}, glm::vec3{_settings.width*0.5f, _settings.height*0.5f, 0.0f})*
+                                  glm::scale(glm::mat4{1.0f}, glm::vec3{_settings.width, _settings.height, 1.0f});
+    _texture_shader->set_mat4("u_mvp", _projection*screen_quad_model);
     _screen_vao->bind();
     _fbo->bind_color_texture();
     GL_CALL(glDrawArrays(GL_TRIANGLES, 0, 6));
@@ -372,7 +342,7 @@ void Graphics::set_window_size(int w, int h)
     SDL_SetWindowSize(_window, w, h); 
     _settings.width = w;
     _settings.height = h;
-    set_viewport();
+    set_window_viewport();
 }
 
 std::pair<int, int> Graphics::get_window_size() const

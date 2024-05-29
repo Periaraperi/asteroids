@@ -89,7 +89,6 @@ void Game::update(float dt)
 void Game::render()
 {
     glm::vec3 text_color{1.0f, 1.0f, 1.0f};
-    //_graphics.clear_buffer(); move to bottom
     _graphics.bind_fbo(); // draw to offscreen texture
 
     // DRAW CALLS HERE!
@@ -112,6 +111,15 @@ void Game::render()
             for (const auto& b:_bullets) {
                 b.draw(_graphics);
             }
+
+            { // draw ship hp points
+                float radius = 15.0f;
+                for (auto hp=_ship->hp(); hp>0; --hp) {
+                    _graphics.draw_circle({w-hp*32.0f, h-30.0f}, radius, {0.863f, 0.078f, 0.235f, 1.0f});
+                }
+            }
+
+            _graphics.draw_text("Asteroids Left: " + std::to_string(_asteroids.size()), {0.0f, h-30}, text_color, 0.7f);
         } break;
         case Game_State::DEAD:
         {
@@ -122,8 +130,6 @@ void Game::render()
             _graphics.draw_text("YOU WON", {w*0.5f - 120.0f, h*0.5f}, text_color);
         } break;
     }
-
-    _graphics.draw_text("Asteroids Left: " + std::to_string(_asteroids.size()), {0.0f, h-30}, text_color, 0.7f);
 
     _graphics.flush(); // actually draws stuff to separate fbo color attachment
 
@@ -175,9 +181,14 @@ void Game::update_playing_state(float dt)
     for (auto& a:_asteroids) {
         const Polygon asteroid_poly{a.get_points_in_world()};
 
-        if (concave_sat(ship_poly, asteroid_poly)) {
-            _state = Game_State::DEAD;
-            return;
+        if (!_ship->is_invincible()) {
+            if (concave_sat(ship_poly, asteroid_poly)) {
+                _ship->hit();
+                if (_ship->hp() == 0) {
+                    _state = Game_State::DEAD;
+                    return;
+                }
+            }
         }
 
         for (auto& b:_bullets) {

@@ -26,7 +26,8 @@ init_ship_model()
 Ship::Ship(glm::vec2 world_pos)
     :_ship_model{init_ship_model()},
      _transform{world_pos, {25.0f, 20.0f}, 0.0f},
-     _velocity{0.0f, 0.0f}
+     _velocity{0.0f, 0.0f}, _hp{3}, _iframe_duration{1.0f},
+     _invincible{false}
 {}
 
 void Ship::update(Graphics& g, Input_Manager& im, float dt)
@@ -80,10 +81,45 @@ void Ship::update(Graphics& g, Input_Manager& im, float dt)
         _transform.pos.y += (sh+max_y-min_y);
     }
 
+    if (_invincible) iframes();
 }
 
+void Ship::iframes()
+{
+    static float accum = 0.0f;
+    static float increment = 0.001f;
+
+    PERIA_LOG("DT: ", increment);
+    if (accum <= _iframe_duration) {
+        accum += increment;
+    }
+    else {
+        accum = 0.0f;
+        _invincible = false;
+    }
+}
+
+void Ship::hit()
+{ 
+    if (_hp > 0) --_hp;
+    if (_hp > 0) _invincible = true;
+}
+
+uint8_t Ship::hp() const
+{ return _hp; }
+
+bool Ship::is_invincible() const
+{ return _invincible; }
+
 void Ship::draw(Graphics& g) const
-{ g.draw_polygon(get_points_in_world(), {0.55f, 0.3f, 0.8f, 1.0f}); }
+{ 
+    if (_invincible) {
+        g.draw_polygon(get_points_in_world(), {0.863f, 0.078f, 0.235f, 0.7f}); 
+    }
+    else {
+        g.draw_polygon(get_points_in_world(), {0.55f, 0.3f, 0.8f, 1.0f}); 
+    }
+}
 
 // returns world positions for polygon points
 // for physics.
