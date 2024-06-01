@@ -370,6 +370,7 @@ void Graphics::toggle_fullscreen()
         if (SDL_SetWindowFullscreen(_window, SDL_WINDOW_FULLSCREEN) != 0) {
             PERIA_LOG(SDL_GetError());
         }
+        vsync(false);
     }
     else {
         if (SDL_SetWindowFullscreen(_window, 0) != 0) {
@@ -383,6 +384,10 @@ bool Graphics::is_fullscreen() const
 
 void Graphics::vsync(bool vsync)
 { SDL_GL_SetSwapInterval((vsync) ? 1 : 0); }
+
+int Graphics::get_vsync() const
+{ return SDL_GL_GetSwapInterval(); }
+    
 
 void Graphics::wireframe(bool wireframe)
 { 

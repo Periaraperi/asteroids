@@ -91,6 +91,7 @@ void Ship::iframes()
 
     PERIA_LOG("DT: ", increment);
     if (accum <= _iframe_duration) {
+        PERIA_LOG("Accum: ", accum);
         accum += increment;
     }
     else {

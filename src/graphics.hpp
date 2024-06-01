@@ -98,6 +98,8 @@ public:
     bool is_fullscreen() const;
 
     void vsync(bool vsync);
+    int get_vsync() const;
+
     void wireframe(bool wireframe);
 
     // Drawing functions, these function just batch data. I.E add vertex info to big buffer.

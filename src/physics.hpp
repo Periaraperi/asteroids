@@ -47,7 +47,7 @@ public:
     explicit Polygon(const std::vector<glm::vec2>& ps)
         :_points{ps}
     { 
-        PERIA_LOG("poly ctor()");
+        //PERIA_LOG("poly ctor()");
         PERIA_ASSERT(_points.size() >= 3, "Poly size must be at least 3");
     }
 
@@ -56,7 +56,7 @@ public:
     explicit Polygon(std::vector<glm::vec2>&& ps)
         :_points{std::move(ps)}
     {
-        PERIA_LOG("poly move ctor()"); 
+        //PERIA_LOG("poly move ctor()"); 
         PERIA_ASSERT(_points.size() >= 3, "Poly size must be at least 3");
     }
 

@@ -12,6 +12,8 @@
 #include "asteroid.hpp"
 #include "bullet.hpp"
 
+auto dt_copy = 0.0f;
+
 Game::Game(Graphics& graphics, Input_Manager& input_manager)
     :_running{true}, _state{Game_State::MAIN_MENU},
      _graphics{graphics}, _input_manager{input_manager}, _level_id{0}
@@ -37,6 +39,7 @@ void Game::run()
     while (_running) {
         uint32_t now = SDL_GetTicks();
         float dt = (now - prev) / 1000.0f; // delta time in seconds
+        dt_copy = dt;
         prev = now;
 
         _input_manager.update_mouse();
@@ -59,6 +62,9 @@ void Game::run()
             dt *= 0.1f; // slow down
         }
 #endif
+        if (_input_manager.key_pressed(SDL_SCANCODE_F)) {
+            _graphics.toggle_fullscreen();
+        }
         update(dt);
         _input_manager.update_prev_state();
 
@@ -131,6 +137,22 @@ void Game::render()
         } break;
     }
 
+    _graphics.draw_text("Dt: "+std::to_string(dt_copy), {100,150}, text_color, 0.6f);
+    if (_graphics.is_fullscreen()) {
+        _graphics.draw_text("Fullscreen: True", {100,100}, text_color, 0.6f);
+    }
+    else {
+        _graphics.draw_text("Fullscreen: False", {100,100}, text_color, 0.6f);
+    }
+    if (_graphics.get_vsync()==1) {
+        _graphics.draw_text("Vsync: On", {100,50}, text_color, 0.6f);
+    }
+    else if (_graphics.get_vsync()==0) {
+        _graphics.draw_text("Vsync: Off", {100,50}, text_color, 0.6f);
+    }
+    else if (_graphics.get_vsync()==-1) {
+        _graphics.draw_text("Vsync: 3rd option", {100,50}, text_color, 0.6f);
+    }
     _graphics.flush(); // actually draws stuff to separate fbo color attachment
 
     _graphics.render_to_screen();
@@ -165,7 +187,7 @@ void Game::update_playing_state(float dt)
     const auto& ship_tip = ship_poly.points()[2]; // tip of ship in world space
 
     // shoot bullets
-    if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
+    if (_input_manager.key_down(SDL_SCANCODE_SPACE)) {
         _bullets.emplace_back(ship_tip, _ship->get_direction_vector());
     }
 
