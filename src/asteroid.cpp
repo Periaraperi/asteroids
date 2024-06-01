@@ -83,8 +83,7 @@ void Asteroid::update(Graphics& g, float dt)
     _transform.angle += _angle_rotation_speed*dt;
     Transform::clamp_angle(_transform.angle);
 
-    _transform.pos.x += _velocity.x*dt;
-    _transform.pos.y += _velocity.y*dt;
+    _transform.pos += _velocity*dt;
 
     // screen wrap
     auto world_pos = get_points_in_world();

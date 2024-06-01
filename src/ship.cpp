@@ -26,7 +26,7 @@ init_ship_model()
 Ship::Ship(glm::vec2 world_pos)
     :_ship_model{init_ship_model()},
      _transform{world_pos, {25.0f, 20.0f}, 0.0f},
-     _velocity{0.0f, 0.0f}, _hp{3}, _iframe_duration{1.0f},
+     _velocity{0.0f, 0.0f}, _hp{3}, _iframe_duration{2.0f},
      _invincible{false}
 {}
 
@@ -81,18 +81,17 @@ void Ship::update(Graphics& g, Input_Manager& im, float dt)
         _transform.pos.y += (sh+max_y-min_y);
     }
 
-    if (_invincible) iframes();
+    if (_invincible) iframes(dt);
 }
 
-void Ship::iframes()
+void Ship::iframes(float step)
 {
     static float accum = 0.0f;
-    static float increment = 0.001f;
 
-    PERIA_LOG("DT: ", increment);
+    PERIA_LOG("DT: ", step);
     if (accum <= _iframe_duration) {
         PERIA_LOG("Accum: ", accum);
-        accum += increment;
+        accum += step;
     }
     else {
         accum = 0.0f;

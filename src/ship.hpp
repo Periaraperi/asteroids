@@ -18,7 +18,7 @@ public:
     [[nodiscard]]
     glm::vec2 get_direction_vector() const;
 
-    void iframes();
+    void iframes(float step);
 
     void hit();
     

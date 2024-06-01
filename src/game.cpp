@@ -32,14 +32,20 @@ Game::~Game()
     PERIA_LOG("Game dtor()");
 }
 
+std::string info = "";
+
 void Game::run()
 {
     uint32_t prev = SDL_GetTicks();
+    float accumulator = 0.0f;
+    constexpr float step = 1.0f/60.0f;
+
+    bool vsync = _graphics.get_vsync() == 0 ? false : true;
 
     while (_running) {
         uint32_t now = SDL_GetTicks();
-        float dt = (now - prev) / 1000.0f; // delta time in seconds
-        dt_copy = dt;
+        float frame_time = (now - prev) / 1000.0f; // delta time in seconds
+        dt_copy = frame_time;
         prev = now;
 
         _input_manager.update_mouse();
@@ -56,17 +62,28 @@ void Game::run()
             }
         }
 
-        
-#ifdef PERIA_DEBUG // for testing
-        if (_input_manager.key_down(SDL_SCANCODE_Q)) {
-            dt *= 0.1f; // slow down
+        accumulator += frame_time;
+
+        // fixed loop here
+        while (accumulator >= step) {
+            info = "Dt: " + std::to_string(frame_time) + " Accum: " + std::to_string(accumulator);
+            if (_input_manager.key_pressed(SDL_SCANCODE_F)) {
+                _graphics.toggle_fullscreen();
+            }
+
+            if (_input_manager.key_pressed(SDL_SCANCODE_V)) {
+                vsync = !vsync;
+                _graphics.vsync(vsync);
+            }
+
+            // do physics and game logic updates here
+            update(step);
+            accumulator -= step;
+
+            _input_manager.update_prev_state();
         }
-#endif
-        if (_input_manager.key_pressed(SDL_SCANCODE_F)) {
-            _graphics.toggle_fullscreen();
-        }
-        update(dt);
-        _input_manager.update_prev_state();
+
+        PERIA_LOG(accumulator/step);
 
         render();
 
@@ -153,6 +170,8 @@ void Game::render()
     else if (_graphics.get_vsync()==-1) {
         _graphics.draw_text("Vsync: 3rd option", {100,50}, text_color, 0.6f);
     }
+    _graphics.draw_text(info, {100,20}, text_color, 0.4f);
+
     _graphics.flush(); // actually draws stuff to separate fbo color attachment
 
     _graphics.render_to_screen();
@@ -187,7 +206,7 @@ void Game::update_playing_state(float dt)
     const auto& ship_tip = ship_poly.points()[2]; // tip of ship in world space
 
     // shoot bullets
-    if (_input_manager.key_down(SDL_SCANCODE_SPACE)) {
+    if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
         _bullets.emplace_back(ship_tip, _ship->get_direction_vector());
     }
 
