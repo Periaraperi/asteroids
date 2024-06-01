@@ -287,6 +287,24 @@ void Graphics::cleanup()
     _text_shader.reset();
     _texture_shader.reset();
 
+	_ibo.reset(); // release ibo
+
+	_circle_batch_vbo.reset();
+	_rect_batch_vbo.reset();
+	_triangle_batch_vbo.reset();
+	_screen_vbo.reset();
+	_text_vbo.reset();
+
+	_circle_batch_vao.reset();
+	_triangle_batch_vao.reset();
+	_rect_batch_vao.reset();
+	_text_vao.reset();
+	_screen_vao.reset();
+
+	_text_atlas.reset();
+
+	_fbo.reset();
+
     SDL_GL_DeleteContext(_context);
 
     SDL_DestroyWindow(_window);
@@ -370,7 +388,6 @@ void Graphics::toggle_fullscreen()
         if (SDL_SetWindowFullscreen(_window, SDL_WINDOW_FULLSCREEN) != 0) {
             PERIA_LOG(SDL_GetError());
         }
-        vsync(false);
     }
     else {
         if (SDL_SetWindowFullscreen(_window, 0) != 0) {

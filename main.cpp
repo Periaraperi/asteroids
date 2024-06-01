@@ -5,9 +5,9 @@
 #include "graphics.hpp"
 #include "input_manager.hpp"
 
-int main()
+int main(int argc, char** argv)
 {
-    Graphics graphics{Window_Settings{"asteroids", 1920, 1080, false, true}};
+    Graphics graphics{Window_Settings{"asteroids", 1600, 900, false, true}};
     graphics.set_clear_color(1.0f, 1.0f, 1.0f, 1.0f);
     graphics.vsync(false);
 

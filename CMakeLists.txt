@@ -32,29 +32,51 @@ set(SRCS
 
 add_executable(asteroids ${SRCS})
 target_compile_features(asteroids PRIVATE cxx_std_17)
-target_compile_options(asteroids PRIVATE -Wall -Wextra -Wpedantic -Wshadow)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(asteroids PRIVATE PERIA_DEBUG)
 endif()
 
-find_package(SDL2 REQUIRED)
-if (${SDL2_FOUND})
-    message(STATUS "SDL2 Package Found")
+if (UNIX) # we use GNU Compiler on linux
+    target_compile_options(asteroids PRIVATE -Wall -Wextra -Wpedantic -Wshadow)
+
+    # SDL2 and Freetype must be installed on your linux distro
+    find_package(SDL2 REQUIRED)
+    if (${SDL2_FOUND})
+        message(STATUS "SDL2 Package Found")
+    endif()
+
+    find_package(Freetype REQUIRED)
+    if (${FREETYPE_FOUND})
+        message(STATUS "Freetype Package Found")
+    endif()
+
+    target_include_directories(asteroids 
+        PRIVATE 
+        ${SDL2_INCLUDE_DIRS} 
+        ${SRC_DIR}
+
+        ${EXTERNAL_INCLUDE_DIR}/glad/include
+        ${EXTERNAL_INCLUDE_DIR}/glm/
+        ${FREETYPE_INCLUDE_DIRS}
+    )
+    target_link_libraries(asteroids PRIVATE ${SDL2_LIBRARIES} ${FREETYPE_LIBRARIES})
+
+elseif (WIN32) # currently setup for MSVC compiler
+    # on windows link sdl2 and freetype from libs provided in external directory
+    target_compile_options(asteroids PRIVATE /W4) 
+
+    target_include_directories(asteroids 
+        PRIVATE 
+        ${SRC_DIR}
+
+        ${EXTERNAL_INCLUDE_DIR}/glad/include
+        ${EXTERNAL_INCLUDE_DIR}/glm/
+        ${EXTERNAL_INCLUDE_DIR}/sdl2/include
+        ${EXTERNAL_INCLUDE_DIR}/freetype/include
+    )
+    target_link_libraries(asteroids PRIVATE 
+        ${EXTERNAL_INCLUDE_DIR}/sdl2/lib/x64/SDL2.lib
+        ${EXTERNAL_INCLUDE_DIR}/sdl2/lib/x64/SDL2main.lib
+        ${EXTERNAL_INCLUDE_DIR}/freetype/lib/freetype.lib)
 endif()
-
-find_package(Freetype REQUIRED)
-if (${FREETYPE_FOUND})
-    message(STATUS "Freetype Package Found")
-endif()
-
-target_include_directories(asteroids 
-    PRIVATE 
-    ${SDL2_INCLUDE_DIRS} 
-    ${SRC_DIR}
-
-    ${EXTERNAL_INCLUDE_DIR}/glad/include
-    ${EXTERNAL_INCLUDE_DIR}/glm/
-    ${FREETYPE_INCLUDE_DIRS}
-)
-target_link_libraries(asteroids PRIVATE ${SDL2_LIBRARIES} ${FREETYPE_LIBRARIES})
