@@ -25,6 +25,7 @@ set(SRCS
     ${SRC_DIR}/ship.cpp
     ${SRC_DIR}/asteroid.cpp
     ${SRC_DIR}/bullet.cpp
+    ${SRC_DIR}/weapons.cpp
 
     #external
     ${EXTERNAL_INCLUDE_DIR}/glad/src/glad.c

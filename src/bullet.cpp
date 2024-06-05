@@ -11,7 +11,7 @@ Bullet::Bullet(glm::vec2 world_pos, glm::vec2 dir)
     :_pos{world_pos}, _dir_vector{dir}, _dead{false}
 {}
 
-void Bullet::update(Graphics& g, float dt)
+void Bullet::update(float dt)
 {
     _prev_pos = _pos;
 

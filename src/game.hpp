@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include "asteroid.hpp"
+#include "weapons.hpp"
 
 class Graphics;
 class Input_Manager;
@@ -53,6 +54,9 @@ private:
     std::unique_ptr<Ship> _ship;
     std::vector<Asteroid> _asteroids;
     std::vector<Bullet> _bullets;
+    std::vector<Shotgun> _shotguns;
+
+    bool _has_shotgun = false;
 
     std::size_t _level_id;
     std::vector<std::function<void()>> _level_init_calls;

@@ -9,7 +9,7 @@ class Bullet {
 public:
     Bullet() = default;
     Bullet(glm::vec2 world_pos, glm::vec2 dir);
-    void update(Graphics& g, float dt);
+    void update(float dt);
     void draw(Graphics& g, float alpha) const;
 
     [[nodiscard]]

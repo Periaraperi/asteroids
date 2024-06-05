@@ -22,6 +22,7 @@ Game::Game(Graphics& graphics, Input_Manager& input_manager)
     _level_init_calls.push_back(std::bind(&Game::init_level1, this));
     _level_init_calls.push_back(std::bind(&Game::init_level2, this));
     _level_init_calls.push_back(std::bind(&Game::init_level3, this));
+    _has_shotgun = true;
 
     PERIA_LOG("Game ctor()");
 }
@@ -134,6 +135,10 @@ void Game::render(float alpha)
                 b.draw(_graphics, alpha);
             }
 
+            for (const auto& shotgun:_shotguns) {
+                shotgun.draw(_graphics, alpha);
+            }
+
             { // draw ship hp points
                 float radius = 15.0f;
                 for (auto hp=_ship->hp(); hp>0; --hp) {
@@ -206,11 +211,20 @@ void Game::update_playing_state(float dt)
 
     // shoot bullets
     if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
-        _bullets.emplace_back(ship_tip, _ship->get_direction_vector());
+        if (_has_shotgun) {
+            _shotguns.emplace_back(ship_tip, _ship->get_direction_vector());
+        }
+        else {
+            _bullets.emplace_back(ship_tip, _ship->get_direction_vector());
+        }
     }
 
     for (auto& b:_bullets) {
-        b.update(_graphics, dt);
+        b.update(dt);
+    }
+
+    for (auto& shotgun_bullets:_shotguns) {
+        shotgun_bullets.update(dt);
     }
 
     // stores asteroids from potential split
@@ -232,7 +246,7 @@ void Game::update_playing_state(float dt)
         }
 
         for (auto& b:_bullets) {
-            if (a.dead()) continue;
+            if (a.dead()) break;
             
             Polygon bullet_poly{b.get_world_points()};
             if (concave_sat(bullet_poly, asteroid_poly)) {
@@ -250,11 +264,44 @@ void Game::update_playing_state(float dt)
                 }
             }
         }
+
+        for (auto& shot_gun:_shotguns) {
+            if (a.dead()) break;
+
+            auto& bullets = shot_gun.get_bullets_world_points();
+            // loop over each bullet
+            for (auto& b:bullets) {
+                Polygon bullet_poly{b.get_world_points()};
+
+                if (concave_sat(bullet_poly, asteroid_poly)) {
+                    b.explode();
+                    a.hit(); // deal damage
+                    if (a.hp() == 0) {
+                        a.explode();
+                        auto asteroids = a.split(); // vector of 0 or 3 or 6 asteroids
+                        // move temporary smaller asteroids into new_asteroids
+                        if (!asteroids.empty()) {
+                            for (auto& tmp:asteroids) {
+                                new_asteroids.emplace_back(std::move(tmp));
+                            }
+                        }
+                    }
+                }
+            }
+            
+        }
     }
     
     _bullets.erase(std::remove_if(_bullets.begin(), _bullets.end(), 
                    [](const Bullet& b) { return b.dead(); }),
                    _bullets.end());
+
+    for (auto& shot_gun:_shotguns) {
+        auto& bullets = shot_gun.get_bullets_world_points();
+        bullets.erase(std::remove_if(bullets.begin(), bullets.end(), 
+                   [](const Bullet& b) { return b.dead(); }),
+                   bullets.end());
+    }
 
     _asteroids.erase(std::remove_if(_asteroids.begin(), _asteroids.end(), 
                    [](const Asteroid a) { return a.dead(); }),
@@ -306,6 +353,7 @@ void Game::init_level1()
     
     _asteroids.clear();
     _bullets.clear();
+    _shotguns.clear();
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
                             glm::vec2{350.0f, 600.0f},
@@ -324,6 +372,7 @@ void Game::init_level2()
     
     _asteroids.clear();
     _bullets.clear();
+    _shotguns.clear();
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
                             glm::vec2{350.0f, 600.0f},
@@ -347,6 +396,7 @@ void Game::init_level3()
     
     _asteroids.clear();
     _bullets.clear();
+    _shotguns.clear();
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
                             glm::vec2{350.0f, 600.0f},
