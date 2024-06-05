@@ -4,11 +4,10 @@
 #include "physics.hpp"
 
 // in world space
-constexpr float RADIUS = 4.5f;
 constexpr float SPEED = 500.0f;
 
-Bullet::Bullet(glm::vec2 world_pos, glm::vec2 dir)
-    :_pos{world_pos}, _dir_vector{dir}, _dead{false}
+Bullet::Bullet(glm::vec2 world_pos, float radius, glm::vec2 dir, glm::vec4 color)
+    :_pos{world_pos}, _radius{radius}, _dir_vector{dir}, _color{color}, _dead{false}
 {}
 
 void Bullet::update(float dt)
@@ -20,8 +19,8 @@ void Bullet::update(float dt)
     //auto [w, h] = g.get_window_size();
     auto w = 1600;
     auto h = 900;
-    if (_pos.x-RADIUS > w || _pos.x+RADIUS < 0.0f ||
-        _pos.y-RADIUS > h || _pos.y+RADIUS < 0.0f) {
+    if (_pos.x-_radius > w || _pos.x+_radius < 0.0f ||
+        _pos.y-_radius > h || _pos.y+_radius < 0.0f) {
         _dead = true;
     }
 }
@@ -29,7 +28,7 @@ void Bullet::update(float dt)
 void Bullet::draw(Graphics& g, float alpha) const
 {
     glm::vec2 p{lerp(_prev_pos.x, _pos.x, alpha), lerp(_prev_pos.y, _pos.y, alpha)};
-    g.draw_rect({p.x-RADIUS, p.y+RADIUS}, {2*RADIUS, 2*RADIUS}, {0.5f, 0.6f, 0.7f, 1.0f});
+    g.draw_rect({p.x-_radius, p.y+_radius}, {2*_radius, 2*_radius}, _color);
     //g.draw_circle({_pos.x-RADIUS, _pos.y+RADIUS}, RADIUS, {0.5f, 0.5f, 0.0f, 1.0f});
 }
 
@@ -40,9 +39,9 @@ void Bullet::explode()
 std::vector<glm::vec2> Bullet::get_world_points() const
 {
     return {
-        {_pos.x-RADIUS, _pos.y+RADIUS},
-        {_pos.x+RADIUS, _pos.y+RADIUS},
-        {_pos.x+RADIUS, _pos.y-RADIUS},
-        {_pos.x-RADIUS, _pos.y-RADIUS}
+        {_pos.x-_radius, _pos.y+_radius},
+        {_pos.x+_radius, _pos.y+_radius},
+        {_pos.x+_radius, _pos.y-_radius},
+        {_pos.x-_radius, _pos.y-_radius}
     };
 }

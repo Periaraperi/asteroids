@@ -17,13 +17,14 @@ std::vector<Bullet> init_shotgun(glm::vec2 world_pos, glm::vec2 dir)
         std::sin(angle2)*dir.x + std::cos(angle2)*dir.y,
     };
 
-    return {Bullet(world_pos, dir),
-            Bullet(world_pos + dir*15.0f, dir), 
-            Bullet(world_pos + dir*25.0f, dir), 
-            Bullet(world_pos + dir_left*15.0f, dir_left), 
-            Bullet(world_pos + dir_left*25.0f, dir_left), 
-            Bullet(world_pos + dir_right*15.0f, dir_right), 
-            Bullet(world_pos + dir_right*25.0f, dir_right)};
+    glm::vec4 color{0.8f, 0.6f, 0.7f, 1.0f};
+    return {Bullet(world_pos, 5.0f, dir, color),
+            Bullet(world_pos + dir*15.0f, 5.0f, dir, color), 
+            Bullet(world_pos + dir*30.0f, 5.0f, dir, color), 
+            Bullet(world_pos + dir_left*15.0f, 5.0f, dir_left, color), 
+            Bullet(world_pos + dir_left*30.0f, 5.0f, dir_left, color), 
+            Bullet(world_pos + dir_right*15.0f, 5.0f, dir_right, color), 
+            Bullet(world_pos + dir_right*30.0f, 5.0f, dir_right, color)};
 }
 
 Shotgun::Shotgun(glm::vec2 world_pos, glm::vec2 dir)

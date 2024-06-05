@@ -1,34 +1,17 @@
 #include "asteroid.hpp"
 
 #include <algorithm>
-#include <random>
 #include <array>
 
 #include "graphics.hpp"
 #include "physics.hpp"
+#include "peria_utils.hpp"
 
 std::array<float, 3> get_speed {
     200.0f,
     150.0f,
     100.0f
 };
-
-std::random_device rd = std::random_device();
-std::mt19937 generator(rd());
-
-[[nodiscard]]
-float get_float(float l, float r)
-{
-    std::uniform_real_distribution<float> dist(l, r);
-    return dist(rd);
-}
-
-[[nodiscard]]
-int get_int(int l, int r)
-{
-    std::uniform_int_distribution<> dist(l, r);
-    return dist(rd);
-}
 
 std::vector<std::vector<glm::vec2>> predefined_models = {
     {{-0.35f, -0.25f}, {-0.55f, 0.25f}, {-0.27f, 0.75f}, {0.35f, 0.85f}, {0.45f, -0.30f}},
@@ -40,14 +23,14 @@ std::vector<std::vector<glm::vec2>> predefined_models = {
 };
 
 std::vector<glm::vec2> Asteroid::init_asteroid_model()
-{ return predefined_models[get_int(0, predefined_models.size()-1)]; }
+{ return predefined_models[peria::get_int(0, predefined_models.size()-1)]; }
 
 Asteroid::Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vector,
                    uint8_t level_id)
     :_type{asteroid_type},
      _transform{pos, {}, 0.0f},
      _velocity{dir_vector},
-     _angle_rotation_speed{get_float(20.0f, 35.0f)},
+     _angle_rotation_speed{peria::get_float(20.0f, 35.0f)},
      _level_id{level_id}, _dead{false}, 
      _asteroid_model{init_asteroid_model()}
 {

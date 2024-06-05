@@ -3,7 +3,9 @@
 #include <functional>
 #include <memory>
 #include <vector>
+
 #include "asteroid.hpp"
+#include "physics.hpp"
 #include "weapons.hpp"
 
 class Graphics;
@@ -19,6 +21,12 @@ public:
         PLAYING,
         DEAD,
         WON
+    };
+
+    struct Collectible {
+        glm::vec2 pos;
+        glm::vec2 size;
+        bool taken = false;
     };
 
     Game(Graphics& graphics, Input_Manager& input_manager);
@@ -57,6 +65,12 @@ private:
     std::vector<Shotgun> _shotguns;
 
     bool _has_shotgun = false;
+
+    float _shooting_delay_normal = 0.4f;
+    float _shooting_delay_shotgun = 1.0f;
+    float _shotgun_timer = 10.0f;
+
+    std::vector<Collectible> _shotgun_collectibles;
 
     std::size_t _level_id;
     std::vector<std::function<void()>> _level_init_calls;

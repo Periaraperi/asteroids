@@ -99,9 +99,9 @@ void Ship::iframes(float step)
 {
     static float accum = 0.0f;
 
-    PERIA_LOG("DT: ", step);
+    //PERIA_LOG("DT: ", step);
     if (accum <= _iframe_duration) {
-        PERIA_LOG("Accum: ", accum);
+        //PERIA_LOG("Accum: ", accum);
         accum += step;
     }
     else {
