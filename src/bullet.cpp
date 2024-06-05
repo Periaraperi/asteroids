@@ -1,6 +1,7 @@
 #include "bullet.hpp"
 
 #include "graphics.hpp"
+#include "physics.hpp"
 
 // in world space
 constexpr float RADIUS = 4.5f;
@@ -12,6 +13,8 @@ Bullet::Bullet(glm::vec2 world_pos, glm::vec2 dir)
 
 void Bullet::update(Graphics& g, float dt)
 {
+    _prev_pos = _pos;
+
     _pos += _dir_vector*SPEED*dt;
 
     //auto [w, h] = g.get_window_size();
@@ -23,9 +26,10 @@ void Bullet::update(Graphics& g, float dt)
     }
 }
 
-void Bullet::draw(Graphics& g) const
+void Bullet::draw(Graphics& g, float alpha) const
 {
-    g.draw_rect({_pos.x-RADIUS, _pos.y+RADIUS}, {2*RADIUS, 2*RADIUS}, {0.5f, 0.6f, 0.7f, 1.0f});
+    glm::vec2 p{lerp(_prev_pos.x, _pos.x, alpha), lerp(_prev_pos.y, _pos.y, alpha)};
+    g.draw_rect({p.x-RADIUS, p.y+RADIUS}, {2*RADIUS, 2*RADIUS}, {0.5f, 0.6f, 0.7f, 1.0f});
     //g.draw_circle({_pos.x-RADIUS, _pos.y+RADIUS}, RADIUS, {0.5f, 0.5f, 0.0f, 1.0f});
 }
 

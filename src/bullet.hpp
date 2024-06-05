@@ -10,7 +10,7 @@ public:
     Bullet() = default;
     Bullet(glm::vec2 world_pos, glm::vec2 dir);
     void update(Graphics& g, float dt);
-    void draw(Graphics& g) const;
+    void draw(Graphics& g, float alpha) const;
 
     [[nodiscard]]
     std::vector<glm::vec2> get_world_points() const;
@@ -27,6 +27,8 @@ public:
 
 private:
     glm::vec2 _pos;
+    glm::vec2 _prev_pos;
+
     glm::vec2 _dir_vector;
     bool _dead;
 };

@@ -27,7 +27,7 @@ public:
 
 private:
     void update(float dt);
-    void render();
+    void render(float alpha);
 
     void update_main_menu_state();
     void update_playing_state(float dt);

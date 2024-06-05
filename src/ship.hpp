@@ -10,10 +10,13 @@ class Ship {
 public:
     explicit Ship(glm::vec2 world_pos);
     void update(Graphics& g, Input_Manager& im, float dt);
-    void draw(Graphics& g) const;
+    void draw(Graphics& g, float alpha) const;
 
     [[nodiscard]]
     std::vector<glm::vec2> get_points_in_world() const;
+
+    [[nodiscard]]
+    std::vector<glm::vec2> get_points_in_world_interpolated(const Transform& interpolated_transform) const;
 
     [[nodiscard]]
     glm::vec2 get_direction_vector() const;
@@ -31,7 +34,9 @@ public:
 private:
     std::vector<glm::vec2> _ship_model;
 
-    Transform _transform;
+    Transform _transform{};
+    Transform _prev_transform{};
+
     glm::vec2 _velocity;
     uint8_t _hp;
 

@@ -5,6 +5,7 @@
 #include <iostream>
 #include "opengl_errors.hpp"
 #include "peria_logger.hpp"
+#include "transform.hpp"
 
 struct AABB_Collider {
     glm::vec2 pos;
@@ -188,3 +189,9 @@ bool sat(const Polygon& a, const Polygon& b);
 // will triangulate polygons if concave and check sat on triangles.
 [[nodiscard]]
 bool concave_sat(const Polygon& a, const Polygon& b);
+
+[[nodiscard]]
+float lerp(float a, float b, float alpha);
+
+[[nodiscard]]
+Transform interpolate_state(const Transform& prev, const Transform& current, float alpha);

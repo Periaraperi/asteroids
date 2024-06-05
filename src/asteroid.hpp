@@ -20,7 +20,7 @@ public:
     Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vector, uint8_t level_id);
 
     void update(Graphics& g, float dt);
-    void draw(Graphics& g) const;
+    void draw(Graphics& g, float alpha) const;
 
     [[nodiscard]]
     glm::vec2 get_world_pos() const;
@@ -39,6 +39,9 @@ public:
     std::vector<glm::vec2> get_points_in_world() const;
 
     [[nodiscard]]
+    std::vector<glm::vec2> get_points_in_world_interpolated(const Transform& interpolated_transform) const;
+
+    [[nodiscard]]
     std::vector<Asteroid> split();
 
 private:
@@ -49,6 +52,7 @@ private:
 private:
     Asteroid_Type _type;
     Transform _transform{};
+    Transform _prev_transform{};
 
     glm::vec2 _velocity{};
     float _angle_rotation_speed{};

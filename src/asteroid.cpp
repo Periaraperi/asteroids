@@ -5,6 +5,7 @@
 #include <array>
 
 #include "graphics.hpp"
+#include "physics.hpp"
 
 std::array<float, 3> get_speed {
     200.0f,
@@ -80,6 +81,9 @@ Asteroid::Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vec
 
 void Asteroid::update(Graphics& g, float dt)
 {
+    // store prev state
+    _prev_transform = _transform;
+
     _transform.angle += _angle_rotation_speed*dt;
     Transform::clamp_angle(_transform.angle);
 
@@ -96,25 +100,34 @@ void Asteroid::update(Graphics& g, float dt)
     auto sw = 1600;
     auto sh = 900;
 
+    bool wrap = false;
+
     if (min_x > sw) {
         _transform.pos.x -= (sw+max_x-min_x);
+        wrap = true;
     }
     else if (max_x < 0.0f) {
         _transform.pos.x += (sw+max_x-min_x);
+        wrap = true;
     }
 
     if (min_y > sh) {
         _transform.pos.y -= (sh+max_y-min_y);
+        wrap = true;
     }
     else if (max_y < 0.0f) {
         _transform.pos.y += (sh+max_y-min_y);
+        wrap = true;
     }
+
+    if (wrap) _prev_transform = _transform;
 }
 
-void Asteroid::draw(Graphics& g) const
+void Asteroid::draw(Graphics& g, float alpha) const
 { 
-    g.draw_polygon(get_points_in_world(), {0.8f, 0.8f, 0.8f, 1.0f}); 
-    g.draw_text(std::to_string(_hp), _transform.pos, {0.2f, 0.2f, 0.4f}, 0.5f);
+    auto t = interpolate_state(_prev_transform, _transform, alpha);
+    g.draw_polygon(get_points_in_world_interpolated(t), {0.8f, 0.8f, 0.8f, 1.0f}); 
+    g.draw_text(std::to_string(_hp), t.pos, {0.2f, 0.2f, 0.4f}, 0.5f);
 }
 
 void Asteroid::explode()
@@ -139,6 +152,18 @@ std::vector<glm::vec2> Asteroid::get_points_in_world() const
     for (const auto& p:_asteroid_model) {
         glm::vec4 v{p.x, p.y, 0.0f, 1.0f};
         glm::vec4 transformed = transform*v;
+        vec.emplace_back(transformed.x, transformed.y);
+    }
+    return vec;
+}
+
+std::vector<glm::vec2> Asteroid::get_points_in_world_interpolated(const Transform& interpolated_transform) const
+{
+    std::vector<glm::vec2> vec; vec.reserve(_asteroid_model.size());
+    auto interpolated_model = Transform::model(interpolated_transform.pos, interpolated_transform.scale, _transform.angle);
+    for (const auto& p:_asteroid_model) {
+        glm::vec4 v{p.x, p.y, 0.0f, 1.0f};
+        glm::vec4 transformed = interpolated_model*v;
         vec.emplace_back(transformed.x, transformed.y);
     }
     return vec;

@@ -13,7 +13,6 @@
 #include "bullet.hpp"
 
 auto dt_copy = 0.0f;
-
 Game::Game(Graphics& graphics, Input_Manager& input_manager)
     :_running{true}, _state{Game_State::MAIN_MENU},
      _graphics{graphics}, _input_manager{input_manager}, _level_id{0}
@@ -83,9 +82,9 @@ void Game::run()
             _input_manager.update_prev_state();
         }
 
-        PERIA_LOG(accumulator/step);
+        auto alpha = accumulator / step;
 
-        render();
+        render(alpha);
 
         SDL_Delay(1);
     }
@@ -109,7 +108,7 @@ void Game::update(float dt)
     }
 }
 
-void Game::render()
+void Game::render(float alpha)
 {
     glm::vec3 text_color{1.0f, 1.0f, 1.0f};
     _graphics.bind_fbo(); // draw to offscreen texture
@@ -126,13 +125,13 @@ void Game::render()
         case Game_State::PLAYING:
         {
             for (const auto& a:_asteroids) {
-                a.draw(_graphics);
+                a.draw(_graphics, alpha);
             }
 
-            _ship->draw(_graphics);
+            _ship->draw(_graphics, alpha);
 
             for (const auto& b:_bullets) {
-                b.draw(_graphics);
+                b.draw(_graphics, alpha);
             }
 
             { // draw ship hp points

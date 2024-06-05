@@ -1,5 +1,7 @@
 #include "physics.hpp"
 
+#include <glm/vec2.hpp>
+
 bool aabb(const AABB_Collider &a, const AABB_Collider &b)
 {
     const auto& ax = a.pos.x;
@@ -183,4 +185,22 @@ bool concave_sat(const Polygon& a, const Polygon& b)
     }
     
     return false;
+}
+
+float lerp(float a, float b, float alpha)
+{ return (1.0f - alpha)*a + b*alpha; }
+
+Transform interpolate_state(const Transform& prev, const Transform& current, float alpha)
+{
+    auto f = [&alpha](float a, float b) -> float {
+        return lerp(a, b, alpha);
+    };
+    
+    return {
+        glm::vec2{f(prev.pos.x, current.pos.x),
+                  f(prev.pos.y, current.pos.y)},
+        glm::vec2{f(prev.scale.x, current.scale.x),
+                  f(prev.scale.y, current.scale.y)},
+        f(prev.angle, current.angle)
+    };
 }

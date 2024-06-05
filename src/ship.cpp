@@ -2,6 +2,7 @@
 
 #include "graphics.hpp"
 #include "input_manager.hpp"
+#include "physics.hpp"
 
 #include <algorithm>
 
@@ -32,6 +33,8 @@ Ship::Ship(glm::vec2 world_pos)
 
 void Ship::update(Graphics& g, Input_Manager& im, float dt)
 {
+    _prev_transform = _transform;
+
     // ROTATION
     if (im.key_down(SDL_SCANCODE_A)) {
         _transform.angle += ROTATION_SPEED*dt;
@@ -67,19 +70,27 @@ void Ship::update(Graphics& g, Input_Manager& im, float dt)
     //auto [sw, sh] = g.get_window_size();
     auto sw = 1600;
     auto sh = 900;
+
+    bool wrap = false;
     if (min_x > sw) {
         _transform.pos.x -= (sw+max_x-min_x);
+        wrap = true;
     }
     else if (max_x < 0.0f) {
         _transform.pos.x += (sw+max_x-min_x);
+        wrap = true;
     }
 
     if (min_y > sh) {
         _transform.pos.y -= (sh+max_y-min_y);
+        wrap = true;
     }
     else if (max_y < 0.0f) {
         _transform.pos.y += (sh+max_y-min_y);
+        wrap = true;
     }
+
+    if (wrap) _prev_transform = _transform;
 
     if (_invincible) iframes(dt);
 }
@@ -111,13 +122,14 @@ uint8_t Ship::hp() const
 bool Ship::is_invincible() const
 { return _invincible; }
 
-void Ship::draw(Graphics& g) const
+void Ship::draw(Graphics& g, float alpha) const
 { 
+    auto t = interpolate_state(_prev_transform, _transform, alpha);
     if (_invincible) {
-        g.draw_polygon(get_points_in_world(), {0.863f, 0.078f, 0.235f, 0.7f}); 
+        g.draw_polygon(get_points_in_world_interpolated(t), {0.863f, 0.078f, 0.235f, 0.7f}); 
     }
     else {
-        g.draw_polygon(get_points_in_world(), {0.55f, 0.3f, 0.8f, 1.0f}); 
+        g.draw_polygon(get_points_in_world_interpolated(t), {0.55f, 0.3f, 0.8f, 1.0f}); 
     }
 }
 
@@ -130,6 +142,18 @@ std::vector<glm::vec2> Ship::get_points_in_world() const
     for (const auto& p:_ship_model) {
         glm::vec4 v{p.x, p.y, 0.0f, 1.0f};
         glm::vec4 transformed = transform*v;
+        vec.emplace_back(transformed.x, transformed.y);
+    }
+    return vec;
+}
+
+std::vector<glm::vec2> Ship::get_points_in_world_interpolated(const Transform& interpolated_transform) const
+{
+    std::vector<glm::vec2> vec; vec.reserve(_ship_model.size());
+    auto model = Transform::model(interpolated_transform.pos, interpolated_transform.scale, _transform.angle);
+    for (const auto& p:_ship_model) {
+        glm::vec4 v{p.x, p.y, 0.0f, 1.0f};
+        glm::vec4 transformed = model*v;
         vec.emplace_back(transformed.x, transformed.y);
     }
     return vec;
