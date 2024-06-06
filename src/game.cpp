@@ -16,10 +16,12 @@
 auto dt_copy = 0.0f;
 Game::Game(Graphics& graphics, Input_Manager& input_manager)
     :_running{true}, _state{Game_State::MAIN_MENU},
-     _graphics{graphics}, _input_manager{input_manager}, _level_id{0}
+     _graphics{graphics}, _input_manager{input_manager}, 
+     _active_weapon{Active_Weapon::GUN},
+     _level_id{0}
 {
     _bullets.reserve(512); // reserve some space since we know we will shoot a lot
-    _level_init_calls.reserve(10);
+    _level_init_calls.reserve(5);
     _level_init_calls.push_back(std::bind(&Game::init_level1, this));
     _level_init_calls.push_back(std::bind(&Game::init_level2, this));
     _level_init_calls.push_back(std::bind(&Game::init_level3, this));
@@ -139,10 +141,6 @@ void Game::render(float alpha)
                 b.draw(_graphics, alpha);
             }
 
-            for (const auto& shotgun:_shotguns) {
-                shotgun.draw(_graphics, alpha);
-            }
-
             { // draw ship hp points
                 float radius = 15.0f;
                 for (auto hp=_ship->hp(); hp>0; --hp) {
@@ -151,8 +149,8 @@ void Game::render(float alpha)
             }
 
             _graphics.draw_text("Asteroids Left: " + std::to_string(_asteroids.size()), {0.0f, h-30}, text_color, 0.7f);
-            if (_has_shotgun) {
-                _graphics.draw_text("Shotgun: " + std::to_string(static_cast<int>(_shotgun_timer)), {600.0f, h-30}, text_color, 0.7f);
+            if (_active_weapon == Active_Weapon::SHOTGUN) {
+                _graphics.draw_text("Shotgun: " + std::to_string(static_cast<int>(_shotgun.timer())), {600.0f, h-30}, text_color, 0.7f);
             }
         } break;
         case Game_State::DEAD:
@@ -209,16 +207,20 @@ void Game::update_main_menu_state()
 
 void Game::update_playing_state(float dt)
 {
-    if (_has_shotgun) {
-        _shooting_delay_shotgun -= dt;
-        _shotgun_timer -= dt;
-        if (_shotgun_timer <= 0.0f) {
-            _shotgun_timer = 10.0f; // reset for future
-            _has_shotgun = false;
-        }
+    switch (_active_weapon) {
+        case Active_Weapon::GUN:
+            _gun.update(dt);
+            break;
+        case Active_Weapon::SHOTGUN:
+            _shotgun.update(dt);
+            if (_shotgun.timer() <= 0.0f) {
+                _active_weapon = Active_Weapon::GUN;
+                _gun.reset();
+            }
+            break;
+        default:
+            PERIA_LOG("WTF?");
     }
-    else _shooting_delay_normal -= dt;
-
 
     for (auto& a:_asteroids) {
         a.update(_graphics, dt);
@@ -237,9 +239,10 @@ void Game::update_playing_state(float dt)
             {c.pos.x, c.pos.y-c.size.y}
         }};
 
+        // take shotgun
         if (concave_sat(ship_poly, collectibe_poly)) {
-            _has_shotgun = true;
-            _shotgun_timer = 10.0f; // reset
+            _active_weapon = Active_Weapon::SHOTGUN;
+            _shotgun.reset();
             c.taken = true;
         }
     }
@@ -251,26 +254,24 @@ void Game::update_playing_state(float dt)
 
     // shoot bullets
     if (_input_manager.key_down(SDL_SCANCODE_SPACE)) {
-        if (_has_shotgun) {
-            if (_shooting_delay_shotgun <= 0.0f) {
-                _shotguns.emplace_back(ship_tip, _ship->get_direction_vector());
-                _shooting_delay_shotgun = 1.0f;
-            }
-        }
-        else {
-            if (_shooting_delay_normal <= 0.0f) {
-                _bullets.emplace_back(ship_tip, 4.5f, _ship->get_direction_vector(), glm::vec4{0.5f, 0.6f, 0.7f, 1.0f});
-                _shooting_delay_normal = 0.4f;
-            }
+        switch (_active_weapon) {
+            case Active_Weapon::GUN:
+                if (_gun.delay() <= 0.0f) {
+                    _gun.shoot(ship_tip, _ship->get_direction_vector(), _bullets);
+                }
+                break;
+            case Active_Weapon::SHOTGUN:
+                if (_shotgun.delay() <= 0.0f) {
+                    _shotgun.shoot(ship_tip, _ship->get_direction_vector(), _bullets);
+                }
+                break;
+            default:
+                PERIA_LOG("WTF?");
         }
     }
 
     for (auto& b:_bullets) {
         b.update(dt);
-    }
-
-    for (auto& shotgun_bullets:_shotguns) {
-        shotgun_bullets.update(dt);
     }
 
     // stores asteroids from potential split
@@ -299,6 +300,7 @@ void Game::update_playing_state(float dt)
                 a.hit(); // deal damage
                 if (a.hp() == 0) {
                     a.explode();
+                    // randomly drop collectibles after asteroid explodes
                     if (peria::get_int(1, 8) == 8) {
                         _shotgun_collectibles.push_back({a.get_world_pos(), {10.0f, 10.0f}});
                     }
@@ -312,49 +314,11 @@ void Game::update_playing_state(float dt)
                 }
             }
         }
-
-        for (auto& shot_gun:_shotguns) {
-            if (a.dead()) continue;
-
-            auto& bullets = shot_gun.get_bullets_world_points();
-            // loop over each bullet
-            for (auto& b:bullets) {
-                if (a.dead() || b.dead()) continue;
-                Polygon bullet_poly{b.get_world_points()};
-
-                if (concave_sat(bullet_poly, asteroid_poly)) {
-                    b.explode();
-                    a.hit(); // deal damage
-                    if (a.hp() == 0) {
-                        a.explode();
-                        if (peria::get_int(1, 8) == 8) {
-                            _shotgun_collectibles.push_back({a.get_world_pos(), {10.0f, 10.0f}});
-                        }
-
-                        auto asteroids = a.split(); // vector of 0 or 3 or 6 asteroids
-                        // move temporary smaller asteroids into new_asteroids
-                        if (!asteroids.empty()) {
-                            for (auto& tmp:asteroids) {
-                                new_asteroids.emplace_back(std::move(tmp));
-                            }
-                        }
-                    }
-                }
-            }
-            
-        }
     }
     
     _bullets.erase(std::remove_if(_bullets.begin(), _bullets.end(), 
                    [](const Bullet& b) { return b.dead(); }),
                    _bullets.end());
-
-    for (auto& shot_gun:_shotguns) {
-        auto& bullets = shot_gun.get_bullets_world_points();
-        bullets.erase(std::remove_if(bullets.begin(), bullets.end(), 
-                   [](const Bullet& b) { return b.dead(); }),
-                   bullets.end());
-    }
 
     _asteroids.erase(std::remove_if(_asteroids.begin(), _asteroids.end(), 
                    [](const Asteroid a) { return a.dead(); }),
@@ -406,9 +370,9 @@ void Game::init_level1()
     
     _asteroids.clear();
     _bullets.clear();
-    _shotguns.clear();
     _shotgun_collectibles.clear();
-    _has_shotgun = false;
+    _active_weapon = Active_Weapon::GUN;
+    _gun.reset();
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
                             glm::vec2{350.0f, 600.0f},
@@ -427,9 +391,9 @@ void Game::init_level2()
     
     _asteroids.clear();
     _bullets.clear();
-    _shotguns.clear();
     _shotgun_collectibles.clear();
-    _has_shotgun = false;
+    _active_weapon = Active_Weapon::GUN;
+    _gun.reset();
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
                             glm::vec2{350.0f, 600.0f},
@@ -453,9 +417,9 @@ void Game::init_level3()
     
     _asteroids.clear();
     _bullets.clear();
-    _shotguns.clear();
     _shotgun_collectibles.clear();
-    _has_shotgun = false;
+    _active_weapon = Active_Weapon::GUN;
+    _gun.reset();
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
                             glm::vec2{350.0f, 600.0f},

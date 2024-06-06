@@ -3,8 +3,15 @@
 #include <cmath>
 #include <glm/trigonometric.hpp>
 
-std::vector<Bullet> init_shotgun(glm::vec2 world_pos, glm::vec2 dir)
+void Shotgun::update(float dt)
 {
+    _delay -= dt;
+    _timer -= dt;
+}
+
+void Shotgun::shoot(const glm::vec2& pos, const glm::vec2& dir,
+                    std::vector<Bullet>& bullets)
+{ 
     auto angle1 = glm::radians(10.0f);
     auto angle2 = glm::radians(-10.0f);
     auto dir_left = glm::vec2{
@@ -17,34 +24,41 @@ std::vector<Bullet> init_shotgun(glm::vec2 world_pos, glm::vec2 dir)
         std::sin(angle2)*dir.x + std::cos(angle2)*dir.y,
     };
 
-    glm::vec4 color{0.8f, 0.6f, 0.7f, 1.0f};
-    return {Bullet(world_pos, 5.0f, dir, color),
-            Bullet(world_pos + dir*15.0f, 5.0f, dir, color), 
-            Bullet(world_pos + dir*30.0f, 5.0f, dir, color), 
-            Bullet(world_pos + dir_left*15.0f, 5.0f, dir_left, color), 
-            Bullet(world_pos + dir_left*30.0f, 5.0f, dir_left, color), 
-            Bullet(world_pos + dir_right*15.0f, 5.0f, dir_right, color), 
-            Bullet(world_pos + dir_right*30.0f, 5.0f, dir_right, color)};
+    bullets.push_back(Bullet(pos, 5.0f, dir, _color));
+    bullets.push_back(Bullet(pos + dir*15.0f, 5.0f, dir, _color));
+    bullets.push_back(Bullet(pos + dir*30.0f, 5.0f, dir, _color));
+    bullets.push_back(Bullet(pos + dir_left*15.0f, 5.0f, dir_left, _color));
+    bullets.push_back(Bullet(pos + dir_left*30.0f, 5.0f, dir_left, _color));
+    bullets.push_back(Bullet(pos + dir_right*15.0f, 5.0f, dir_right, _color));
+    bullets.push_back(Bullet(pos + dir_right*30.0f, 5.0f, dir_right, _color));
+
+    _delay = 1.0f; // delay between fires
 }
 
-Shotgun::Shotgun(glm::vec2 world_pos, glm::vec2 dir)
-    :_bullets{init_shotgun(world_pos, dir)}
-{}
-
-void Shotgun::update(float dt)
+void Shotgun::reset()
 {
-    for (std::size_t i{}; i<_bullets.size(); ++i) {
-        _bullets[i].update(dt);
-    }
+    _delay = 0.0f; // if we take weapon can shoot right away instead of waiting 
+    _timer = 10.0f;
 }
 
-void Shotgun::draw(Graphics& g, float alpha) const
-{
-    for (std::size_t i{}; i<_bullets.size(); ++i) {
-        _bullets[i].draw(g, alpha);
-    }
+float Shotgun::delay() const
+{ return _delay; }
+
+float Shotgun::timer() const
+{ return _timer; }
+
+void Gun::update(float dt)
+{ _delay -= dt; }
+
+void Gun::reset()
+{ _delay = 0.0f; }
+
+void Gun::shoot(const glm::vec2& pos, const glm::vec2& dir,
+                std::vector<Bullet>& bullets)
+{ 
+    bullets.emplace_back(pos, 4.5f, dir, _color); 
+    _delay = 0.3f;
 }
 
-std::vector<Bullet>& Shotgun::get_bullets_world_points()
-{ return _bullets; }
-
+float Gun::delay() const
+{ return _delay; }

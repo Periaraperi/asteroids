@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "asteroid.hpp"
-#include "physics.hpp"
 #include "weapons.hpp"
 
 class Graphics;
@@ -54,6 +53,11 @@ private:
     void init_level4();
     void init_level5();
 private:
+    enum class Active_Weapon {
+        GUN = 0,
+        SHOTGUN
+    };
+
     bool _running;
     Game_State _state;
     Graphics& _graphics;
@@ -61,14 +65,13 @@ private:
     
     std::unique_ptr<Ship> _ship;
     std::vector<Asteroid> _asteroids;
+
     std::vector<Bullet> _bullets;
-    std::vector<Shotgun> _shotguns;
 
-    bool _has_shotgun = false;
+    Gun _gun;
+    Shotgun _shotgun;
 
-    float _shooting_delay_normal = 0.4f;
-    float _shooting_delay_shotgun = 1.0f;
-    float _shotgun_timer = 10.0f;
+    Active_Weapon _active_weapon;
 
     std::vector<Collectible> _shotgun_collectibles;
 
