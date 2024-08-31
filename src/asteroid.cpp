@@ -104,13 +104,17 @@ void Asteroid::update(Graphics& g, float dt)
     }
 
     if (wrap) _prev_transform = _transform;
+
+    reset_color();
 }
 
 void Asteroid::draw(Graphics& g, float alpha) const
 { 
-    auto t = interpolate_state(_prev_transform, _transform, alpha);
-    g.draw_polygon(get_points_in_world_interpolated(t), {0.8f, 0.8f, 0.8f, 1.0f}); 
-    g.draw_text(std::to_string(_hp), t.pos, {0.2f, 0.2f, 0.4f}, 0.5f);
+    //auto t = interpolate_state(_prev_transform, _transform, alpha);
+    //g.draw_polygon(get_points_in_world_interpolated(t), _color); 
+    g.draw_polygon(get_points_in_world(), _color); 
+
+    //g.draw_text(std::to_string(_hp), t.pos, {0.2f, 0.2f, 0.4f}, 0.5f);
 }
 
 void Asteroid::explode()

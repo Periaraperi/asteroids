@@ -440,7 +440,7 @@ void Graphics::draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color)
     GL_CALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float)*2, 0));
 
     _line_shader->bind();
-    _line_shader->set_mat4("u_mvp", _projection);
+    _line_shader->set_mat4("u_mvp", _game_world_projection);
     _line_shader->set_vec4("u_color", color);
     GL_CALL(glDrawArrays(GL_LINES, 0, 2));
 

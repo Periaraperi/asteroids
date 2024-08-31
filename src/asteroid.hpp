@@ -22,6 +22,12 @@ public:
     void update(Graphics& g, float dt);
     void draw(Graphics& g, float alpha) const;
 
+    void set_color(glm::vec4 color) 
+    { _color = color; }
+
+    void reset_color()
+    { _color = {0.8f, 0.8f, 0.8f, 1.0f}; }
+
     [[nodiscard]]
     glm::vec2 get_world_pos() const;
 
@@ -60,6 +66,8 @@ private:
     uint8_t _hp; // this many hits to destroy
     uint8_t _level_id;
     bool _dead{};
+
+    glm::vec4 _color = glm::vec4{0.8f, 0.8f, 0.8f, 1.0f};
 
     std::vector<glm::vec2> _asteroid_model;
 };

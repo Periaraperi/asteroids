@@ -52,10 +52,12 @@ private:
     void init_level3();
     void init_level4();
     void init_level5();
+    void test_level();
 private:
     enum class Active_Weapon {
         GUN = 0,
-        SHOTGUN
+        SHOTGUN,
+        HOMING_ROCKET
     };
 
     bool _running;
@@ -67,6 +69,7 @@ private:
     std::vector<Asteroid> _asteroids;
 
     std::vector<Bullet> _bullets;
+    std::vector<Homing_Bullet> _homing_bullets;
 
     Gun _gun;
     Shotgun _shotgun;
@@ -74,6 +77,8 @@ private:
     Active_Weapon _active_weapon;
 
     std::vector<Collectible> _shotgun_collectibles;
+
+    int _target_index{-1};
 
     std::size_t _level_id;
     std::vector<std::function<void()>> _level_init_calls;
