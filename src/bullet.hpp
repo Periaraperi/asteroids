@@ -10,6 +10,7 @@ class Bullet {
 public:
     Bullet() = default;
     Bullet(glm::vec2 world_pos, float radius, glm::vec2 dir, glm::vec4 color);
+
     void update(float dt);
     void draw(Graphics& g, float alpha) const;
 

@@ -12,6 +12,7 @@
 #include "ship.hpp"
 #include "asteroid.hpp"
 #include "bullet.hpp"
+#include "homing_bullet.hpp"
 
 static std::string search_str = "";
 
@@ -95,25 +96,6 @@ void Game::run()
     }
 }
 
-void Game::update(float dt)
-{
-    switch(_state) {
-        case Game_State::MAIN_MENU:
-        {
-            update_main_menu_state();
-        } break;
-        case Game_State::PLAYING:
-            update_playing_state(dt);
-            break;
-        case Game_State::DEAD:
-            update_dead_state();
-            break;
-        case Game_State::WON:
-            update_won_state();
-            break;
-    }
-}
-
 void Game::render(float alpha)
 {
     glm::vec3 text_color{1.0f, 1.0f, 1.0f};
@@ -159,6 +141,9 @@ void Game::render(float alpha)
             if (_active_weapon == Active_Weapon::SHOTGUN) {
                 _graphics.draw_text("Shotgun: " + std::to_string(static_cast<int>(_shotgun.timer())), {600.0f, h-30}, text_color, 0.7f);
             }
+            if (_active_weapon == Active_Weapon::HOMING_GUN) {
+                _graphics.draw_text("HomingGun: " + std::to_string(static_cast<int>(_homing_gun.timer())), {600.0f, h-30}, text_color, 0.7f);
+            }
 
             _graphics.draw_text(search_str, {900.0f, 550.0f}, {1.0f, 1.0f, 1.0f});
         } break;
@@ -199,6 +184,25 @@ void Game::render(float alpha)
     _graphics.swap_buffers();
 }
 
+void Game::update(float dt)
+{
+    switch(_state) {
+        case Game_State::MAIN_MENU:
+        {
+            update_main_menu_state();
+        } break;
+        case Game_State::PLAYING:
+            update_playing_state(dt);
+            break;
+        case Game_State::DEAD:
+            update_dead_state();
+            break;
+        case Game_State::WON:
+            update_won_state();
+            break;
+    }
+}
+
 // ============================
 // Game state specific updates.
 // ============================
@@ -222,13 +226,17 @@ void Game::update_main_menu_state()
 
 void Game::update_playing_state(float dt)
 {
+    // TEMP STUFF FOR TESTING
     if (_input_manager.key_pressed(SDL_SCANCODE_O)) {
-        _active_weapon = Active_Weapon::HOMING_ROCKET;
+        _active_weapon = Active_Weapon::HOMING_GUN;
+        _homing_gun.reset();
     }
     if (_input_manager.key_pressed(SDL_SCANCODE_P)) {
         _active_weapon = Active_Weapon::GUN;
+        _gun.reset();
     }
 
+    // do weapon update based on currently active weapon
     switch (_active_weapon) {
         case Active_Weapon::GUN:
             _gun.update(dt);
@@ -240,18 +248,25 @@ void Game::update_playing_state(float dt)
                 _gun.reset();
             }
             break;
-        case Active_Weapon::HOMING_ROCKET:
+        case Active_Weapon::HOMING_GUN:
+            _homing_gun.update(dt);
+            if (_homing_gun.timer() <= 0.0f) {
+                _active_weapon = Active_Weapon::GUN;
+                _gun.reset();
+            }
             break;
         default:
             PERIA_LOG("WTF?");
     }
 
-    for (auto& a:_asteroids) {
+    for (auto& a:_asteroids) { 
         a.update(_graphics, dt);
     }
 
     _ship->update(_graphics, _input_manager, dt);
 
+    // this is polygon collider for the ship
+    // Note that since we don't use sprites yet, entities visual and colliders are the same
     Polygon ship_poly{_ship->get_points_in_world()};
     const auto& ship_tip = ship_poly.points()[2]; // tip of ship in world space
     
@@ -271,38 +286,42 @@ void Game::update_playing_state(float dt)
         }
     }
 
+    // remove collected collectibles
     _shotgun_collectibles.erase(std::remove_if(_shotgun_collectibles.begin(), _shotgun_collectibles.end(), 
                    [](const Collectible& c) { return c.taken; }),
                    _shotgun_collectibles.end());
 
-    // shoot bullets
-    if (_input_manager.key_down(SDL_SCANCODE_SPACE)) {
-        switch (_active_weapon) {
-            case Active_Weapon::GUN:
-                if (_gun.delay() <= 0.0f) {
-                    _gun.shoot(ship_tip, _ship->get_direction_vector(), _bullets);
-                }
-                break;
-            case Active_Weapon::SHOTGUN:
-                if (_shotgun.delay() <= 0.0f) {
-                    _shotgun.shoot(ship_tip, _ship->get_direction_vector(), _bullets);
-                }
-                break;
-            case Active_Weapon::HOMING_ROCKET:
-                {
-                _target_index = Homing_Rocket::search(ship_tip, _asteroids);
-                search_str = std::to_string(_target_index);
-                }break;
-            default:
-                PERIA_LOG("WTF?");
+    // logic for bullets shooting based on weapon
+    {
+        if (_input_manager.key_down(SDL_SCANCODE_SPACE)) {
+            switch (_active_weapon) {
+                case Active_Weapon::GUN:
+                    if (_gun.delay() <= 0.0f) {
+                        _gun.shoot(ship_tip, _ship->get_direction_vector(), _bullets);
+                    }
+                    break;
+                case Active_Weapon::SHOTGUN:
+                    if (_shotgun.delay() <= 0.0f) {
+                        _shotgun.shoot(ship_tip, _ship->get_direction_vector(), _bullets);
+                    }
+                    break;
+                case Active_Weapon::HOMING_GUN:
+                    {
+                    _target_index = _homing_gun.search(ship_tip, _asteroids);
+                    _asteroids[_target_index].set_color({1.0f, 0.5f, 1.0f, 1.0f});
+                    search_str = "Searching: " + std::to_string(_target_index);
+                    }break;
+                default:
+                    PERIA_LOG("WTF?");
+            }
         }
-    }
 
-    if (_input_manager.key_released(SDL_SCANCODE_SPACE) &&
-        _active_weapon == Active_Weapon::HOMING_ROCKET) {
-        _homing_bullets.emplace_back(ship_tip, _target_index, _ship->get_direction_vector(), 7.0f, glm::vec4{1.0f, 1.0f, 0.0f, 1.0f});
-        _target_index = -1;
-        search_str = "";
+        if (_input_manager.key_released(SDL_SCANCODE_SPACE) &&
+            _active_weapon == Active_Weapon::HOMING_GUN) {
+            _homing_bullets.emplace_back(ship_tip, 7.0f, _target_index, _ship->get_direction_vector(), glm::vec4{1.0f, 1.0f, 0.0f, 1.0f});
+            _target_index = -1;
+            search_str = "";
+        }
     }
 
     for (auto& b:_bullets) {
@@ -313,73 +332,76 @@ void Game::update_playing_state(float dt)
         if (auto target = hb.get_target();
             target>=0 && target<static_cast<int>(_asteroids.size())) {
             hb.update(dt, _asteroids[target].get_world_pos());
+            _asteroids[target].set_color({1.0f, 0.5f, 1.0f, 1.0f});
         }
     }
 
     // stores asteroids from potential split
     // which later are moved into _asteroids member
     std::vector<Asteroid> new_asteroids;
+    new_asteroids.reserve(32);
 
-    // check collisions
-    for (auto& a:_asteroids) {
-        const Polygon asteroid_poly{a.get_points_in_world()};
+    // check collisions between asteroids and other entities
+    {
+        for (auto& a:_asteroids) {
+            const Polygon asteroid_poly{a.get_points_in_world()};
 
-        if (!_ship->is_invincible()) {
-            if (concave_sat(ship_poly, asteroid_poly)) {
-                _ship->hit();
-                if (_ship->hp() == 0) {
-                    _state = Game_State::DEAD;
-                    return;
+            if (!_ship->is_invincible()) {
+                if (concave_sat(ship_poly, asteroid_poly)) {
+                    _ship->hit();
+                    if (_ship->hp() == 0) {
+                        _state = Game_State::DEAD;
+                        return;
+                    }
                 }
             }
-        }
 
-        for (auto& b:_bullets) {
-            if (a.dead()) continue;
-            
-            Polygon bullet_poly{b.get_world_points()};
-            if (concave_sat(bullet_poly, asteroid_poly)) {
-                b.explode();
-                a.hit(); // deal damage
-                if (a.hp() == 0) {
-                    a.explode();
-                    // randomly drop collectibles after asteroid explodes
-                    if (peria::get_int(1, 8) == 8) {
-                        _shotgun_collectibles.push_back({a.get_world_pos(), {10.0f, 10.0f}});
-                    }
-                    auto asteroids = a.split(); // vector of 0 or 3 or 6 asteroids
-                    // move temporary smaller asteroids into new_asteroids
-                    if (!asteroids.empty()) {
-                        for (auto& tmp:asteroids) {
-                            new_asteroids.emplace_back(std::move(tmp));
+            for (auto& b:_bullets) {
+                if (a.dead()) continue;
+                
+                Polygon bullet_poly{b.get_world_points()};
+                if (concave_sat(bullet_poly, asteroid_poly)) {
+                    b.explode();
+                    a.hit(); // deal damage
+                    if (a.hp() == 0) {
+                        a.explode();
+                        // randomly drop collectibles after asteroid explodes
+                        if (peria::get_int(1, 8) == 8) {
+                            _shotgun_collectibles.push_back({a.get_world_pos(), {10.0f, 10.0f}});
+                        }
+                        auto asteroids = a.split(); // vector of 0, 3 or 6 asteroids
+                        // move temporary smaller asteroids into new_asteroids
+                        if (!asteroids.empty()) {
+                            for (auto& tmp:asteroids) {
+                                new_asteroids.emplace_back(std::move(tmp));
+                            }
                         }
                     }
                 }
             }
-        }
 
-        for (auto& hb:_homing_bullets) {
-            if (a.dead())
-            {
-                hb.set_target(-1);
-                continue;
-            }
-            
-            Polygon bullet_poly{hb.get_world_points()};
-            if (concave_sat(bullet_poly, asteroid_poly)) {
-                hb.explode();
-                a.hit(); // deal damage
-                if (a.hp() == 0) {
-                    a.explode();
-                    // randomly drop collectibles after asteroid explodes
-                    if (peria::get_int(1, 8) == 8) {
-                        _shotgun_collectibles.push_back({a.get_world_pos(), {10.0f, 10.0f}});
-                    }
-                    auto asteroids = a.split(); // vector of 0 or 3 or 6 asteroids
-                    // move temporary smaller asteroids into new_asteroids
-                    if (!asteroids.empty()) {
-                        for (auto& tmp:asteroids) {
-                            new_asteroids.emplace_back(std::move(tmp));
+            for (auto& hb:_homing_bullets) {
+                if (a.dead()) {
+                    hb.set_target(-1);
+                    continue;
+                }
+                
+                Polygon bullet_poly{hb.get_world_points()};
+                if (concave_sat(bullet_poly, asteroid_poly)) {
+                    hb.explode();
+                    a.hit(); // deal damage
+                    if (a.hp() == 0) {
+                        a.explode();
+                        // randomly drop collectibles after asteroid explodes
+                        if (peria::get_int(1, 8) == 8) {
+                            _shotgun_collectibles.push_back({a.get_world_pos(), {10.0f, 10.0f}});
+                        }
+                        auto asteroids = a.split(); // vector of 0 or 3 or 6 asteroids
+                        // move temporary smaller asteroids into new_asteroids
+                        if (!asteroids.empty()) {
+                            for (auto& tmp:asteroids) {
+                                new_asteroids.emplace_back(std::move(tmp));
+                            }
                         }
                     }
                 }
@@ -393,6 +415,7 @@ void Game::update_playing_state(float dt)
 
     // before erasing dead asteroids, unset target asteroids for homing bullets
     // if they are dead.
+    // Could be a problem here. FIX if needed
     for (auto& hb:_homing_bullets) {
         if (auto target_index = hb.get_target(); 
             target_index != -1 && target_index < static_cast<int>(_asteroids.size()) &&

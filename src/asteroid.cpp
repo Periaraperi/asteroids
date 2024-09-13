@@ -110,11 +110,10 @@ void Asteroid::update(Graphics& g, float dt)
 
 void Asteroid::draw(Graphics& g, float alpha) const
 { 
-    //auto t = interpolate_state(_prev_transform, _transform, alpha);
-    //g.draw_polygon(get_points_in_world_interpolated(t), _color); 
-    g.draw_polygon(get_points_in_world(), _color); 
+    auto t = interpolate_state(_prev_transform, _transform, alpha);
+    g.draw_polygon(get_points_in_world_interpolated(t), _color); 
 
-    //g.draw_text(std::to_string(_hp), t.pos, {0.2f, 0.2f, 0.4f}, 0.5f);
+    g.draw_text(std::to_string(_hp), t.pos, {0.2f, 0.2f, 0.4f}, 0.5f);
 }
 
 void Asteroid::explode()

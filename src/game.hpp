@@ -12,6 +12,7 @@ class Input_Manager;
 class Ship;
 class Asteroid;
 class Bullet;
+class Homing_Bullet;
 
 class Game {
 public:
@@ -25,7 +26,7 @@ public:
     struct Collectible {
         glm::vec2 pos;
         glm::vec2 size;
-        bool taken = false;
+        bool taken{false};
     };
 
     Game(Graphics& graphics, Input_Manager& input_manager);
@@ -57,7 +58,7 @@ private:
     enum class Active_Weapon {
         GUN = 0,
         SHOTGUN,
-        HOMING_ROCKET
+        HOMING_GUN
     };
 
     bool _running;
@@ -73,6 +74,7 @@ private:
 
     Gun _gun;
     Shotgun _shotgun;
+    Homing_Gun _homing_gun;
 
     Active_Weapon _active_weapon;
 
