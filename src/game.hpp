@@ -24,6 +24,11 @@ public:
     };
 
     struct Collectible {
+        enum class Collectible_Type {
+            SHOTGUN,
+            HOMING_GUN,
+        };
+        Collectible_Type type;
         glm::vec2 pos;
         glm::vec2 size;
         bool taken{false};
@@ -78,7 +83,9 @@ private:
 
     Active_Weapon _active_weapon;
 
-    std::vector<Collectible> _shotgun_collectibles;
+    //std::vector<Collectible> _shotgun_collectibles;
+    //std::vector<Collectible> _homing_gun_collectibles;
+    std::vector<Collectible> _gun_collectibles;
 
     int _target_index{-1};
 

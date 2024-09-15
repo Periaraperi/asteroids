@@ -118,8 +118,11 @@ void Game::render(float alpha)
 
             _ship->draw(_graphics, alpha);
 
-            for (const auto& c:_shotgun_collectibles) {
-                _graphics.draw_rect(c.pos, c.size, {1.0f, 1.0f, 0.0f, 1.0f});
+            for (const auto& c:_gun_collectibles) {
+                if (c.type==Collectible::Collectible_Type::SHOTGUN)
+                    _graphics.draw_rect(c.pos, c.size, {1.0f, 1.0f, 0.0f, 1.0f});
+                else
+                    _graphics.draw_rect(c.pos, c.size, {0.4f, 1.0f, 0.4f, 1.0f});
             }
 
             for (const auto& b:_bullets) {
@@ -209,12 +212,6 @@ void Game::update(float dt)
 
 void Game::update_main_menu_state()
 {
-    //test
-    if (_input_manager.key_pressed(SDL_SCANCODE_T)) {
-        test_level();
-        _state = Game_State::PLAYING;
-    }
-
     if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
         _level_init_calls[_level_id]();
         _state = Game_State::PLAYING;
@@ -226,16 +223,6 @@ void Game::update_main_menu_state()
 
 void Game::update_playing_state(float dt)
 {
-    // TEMP STUFF FOR TESTING
-    if (_input_manager.key_pressed(SDL_SCANCODE_O)) {
-        _active_weapon = Active_Weapon::HOMING_GUN;
-        _homing_gun.reset();
-    }
-    if (_input_manager.key_pressed(SDL_SCANCODE_P)) {
-        _active_weapon = Active_Weapon::GUN;
-        _gun.reset();
-    }
-
     // do weapon update based on currently active weapon
     switch (_active_weapon) {
         case Active_Weapon::GUN:
@@ -266,11 +253,11 @@ void Game::update_playing_state(float dt)
     _ship->update(_graphics, _input_manager, dt);
 
     // this is polygon collider for the ship
-    // Note that since we don't use sprites yet, entities visual and colliders are the same
+    // Note that since we don't use sprites, entities visual and colliders are the same
     Polygon ship_poly{_ship->get_points_in_world()};
     const auto& ship_tip = ship_poly.points()[2]; // tip of ship in world space
     
-    for (auto& c:_shotgun_collectibles) {
+    for (auto& c:_gun_collectibles) {
         Polygon collectibe_poly{{
             {c.pos.x, c.pos.y},
             {c.pos.x+c.size.x, c.pos.y},
@@ -280,16 +267,26 @@ void Game::update_playing_state(float dt)
 
         // take shotgun
         if (concave_sat(ship_poly, collectibe_poly)) {
-            _active_weapon = Active_Weapon::SHOTGUN;
-            _shotgun.reset();
+            switch (c.type) {
+                case Collectible::Collectible_Type::SHOTGUN:
+                    _active_weapon = Active_Weapon::SHOTGUN;
+                    _shotgun.reset();
+                    break;
+                case Collectible::Collectible_Type::HOMING_GUN:
+                    _active_weapon = Active_Weapon::HOMING_GUN;
+                    _homing_gun.reset();
+                    break;
+                default:
+                    break;
+            }
             c.taken = true;
         }
     }
 
     // remove collected collectibles
-    _shotgun_collectibles.erase(std::remove_if(_shotgun_collectibles.begin(), _shotgun_collectibles.end(), 
+    _gun_collectibles.erase(std::remove_if(_gun_collectibles.begin(), _gun_collectibles.end(), 
                    [](const Collectible& c) { return c.taken; }),
-                   _shotgun_collectibles.end());
+                   _gun_collectibles.end());
 
     // logic for bullets shooting based on weapon
     {
@@ -341,6 +338,16 @@ void Game::update_playing_state(float dt)
     std::vector<Asteroid> new_asteroids;
     new_asteroids.reserve(32);
 
+    // helper lambda for collectibles
+    auto spawn_collectible = [this](const Asteroid& a) {
+        if (peria::get_int(1, 8) == 8) {
+            _gun_collectibles.push_back({Collectible::Collectible_Type::SHOTGUN, a.get_world_pos(), {10.0f, 10.0f}});
+        }
+        else if (peria::get_int(1, 8) == 8) {
+            _gun_collectibles.push_back({Collectible::Collectible_Type::HOMING_GUN, a.get_world_pos(), {10.0f, 10.0f}});
+        }
+    };
+
     // check collisions between asteroids and other entities
     {
         for (auto& a:_asteroids) {
@@ -366,9 +373,7 @@ void Game::update_playing_state(float dt)
                     if (a.hp() == 0) {
                         a.explode();
                         // randomly drop collectibles after asteroid explodes
-                        if (peria::get_int(1, 8) == 8) {
-                            _shotgun_collectibles.push_back({a.get_world_pos(), {10.0f, 10.0f}});
-                        }
+                        spawn_collectible(a);
                         auto asteroids = a.split(); // vector of 0, 3 or 6 asteroids
                         // move temporary smaller asteroids into new_asteroids
                         if (!asteroids.empty()) {
@@ -393,9 +398,7 @@ void Game::update_playing_state(float dt)
                     if (a.hp() == 0) {
                         a.explode();
                         // randomly drop collectibles after asteroid explodes
-                        if (peria::get_int(1, 8) == 8) {
-                            _shotgun_collectibles.push_back({a.get_world_pos(), {10.0f, 10.0f}});
-                        }
+                        spawn_collectible(a);
                         auto asteroids = a.split(); // vector of 0 or 3 or 6 asteroids
                         // move temporary smaller asteroids into new_asteroids
                         if (!asteroids.empty()) {
@@ -480,7 +483,7 @@ void Game::init_level1()
     _asteroids.clear();
     _bullets.clear();
     _homing_bullets.clear();
-    _shotgun_collectibles.clear();
+    _gun_collectibles.clear();
     _active_weapon = Active_Weapon::GUN;
     _gun.reset();
 
@@ -502,7 +505,7 @@ void Game::init_level2()
     _asteroids.clear();
     _bullets.clear();
     _homing_bullets.clear();
-    _shotgun_collectibles.clear();
+    _gun_collectibles.clear();
     _active_weapon = Active_Weapon::GUN;
     _gun.reset();
 
@@ -529,7 +532,7 @@ void Game::init_level3()
     _asteroids.clear();
     _bullets.clear();
     _homing_bullets.clear();
-    _shotgun_collectibles.clear();
+    _gun_collectibles.clear();
     _active_weapon = Active_Weapon::GUN;
     _gun.reset();
 
@@ -548,26 +551,4 @@ void Game::init_level3()
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
                             glm::vec2{w*0.5f, h*0.5f+300.0f},
                             glm::vec2{ship_dir.x, -ship_dir.y}, 3);
-}
-
-void Game::test_level()
-{
-    auto [w, h] = get_world_size();
-
-    _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
-    
-    _asteroids.clear();
-    _bullets.clear();
-    _homing_bullets.clear();
-    _shotgun_collectibles.clear();
-    _active_weapon = Active_Weapon::GUN;
-    _gun.reset();
-
-    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
-                            glm::vec2{350.0f, 600.0f},
-                            glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 1);
-
-    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
-                            glm::vec2{1350.0f, 600.0f},
-                            glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 1);
 }
