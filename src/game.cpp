@@ -479,6 +479,7 @@ void Game::init_level1()
     
     _asteroids.clear();
     _bullets.clear();
+    _homing_bullets.clear();
     _shotgun_collectibles.clear();
     _active_weapon = Active_Weapon::GUN;
     _gun.reset();
@@ -500,6 +501,7 @@ void Game::init_level2()
     
     _asteroids.clear();
     _bullets.clear();
+    _homing_bullets.clear();
     _shotgun_collectibles.clear();
     _active_weapon = Active_Weapon::GUN;
     _gun.reset();
@@ -526,6 +528,7 @@ void Game::init_level3()
     
     _asteroids.clear();
     _bullets.clear();
+    _homing_bullets.clear();
     _shotgun_collectibles.clear();
     _active_weapon = Active_Weapon::GUN;
     _gun.reset();
@@ -555,6 +558,7 @@ void Game::test_level()
     
     _asteroids.clear();
     _bullets.clear();
+    _homing_bullets.clear();
     _shotgun_collectibles.clear();
     _active_weapon = Active_Weapon::GUN;
     _gun.reset();

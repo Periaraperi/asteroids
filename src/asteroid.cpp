@@ -42,20 +42,21 @@ Asteroid::Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vec
         return 0;
     }();
 
+    auto random_speed_offset = peria::get_int(-20, 20);
     switch (_type) {
         case Asteroid_Type::SMALL:
             _transform.scale = {50.0f, 50.0f};
-            _velocity *= get_speed[int(Asteroid_Type::SMALL)];
+            _velocity *= get_speed[int(Asteroid_Type::SMALL)]+random_speed_offset;
             _hp = largest_hp-2;
             break;
         case Asteroid_Type::MEDIUM:
             _transform.scale = {100.0f, 100.0f};
-            _velocity *= get_speed[int(Asteroid_Type::MEDIUM)];
+            _velocity *= get_speed[int(Asteroid_Type::MEDIUM)] + random_speed_offset;
             _hp = largest_hp-1;
             break;
         case Asteroid_Type::LARGE:
             _transform.scale = {150.0f, 150.0f};
-            _velocity *= get_speed[int(Asteroid_Type::LARGE)];
+            _velocity *= get_speed[int(Asteroid_Type::LARGE)] + random_speed_offset;
             _hp = largest_hp;
             break;
         default:
@@ -169,8 +170,10 @@ std::vector<Asteroid> Asteroid::split()
             {
                 auto angle = 360.0f / 6;
                 for (std::size_t i{}; i<6; ++i) {
-                    asteroids.emplace_back(Asteroid_Type::SMALL, _transform.pos, 
-                            glm::vec2{std::cos(glm::radians(i*angle)), std::sin(glm::radians(i*angle))}, _level_id);
+                    auto direction = glm::vec2{std::cos(glm::radians(i*angle)), std::sin(glm::radians(i*angle))};
+                    auto offset = direction*10.0f;
+                    asteroids.emplace_back(Asteroid_Type::SMALL, _transform.pos+offset, 
+                            direction, _level_id);
                 }
                 break;
             }
@@ -178,8 +181,10 @@ std::vector<Asteroid> Asteroid::split()
             {
                 auto angle = 360.0f / 3;
                 for (std::size_t i{}; i<3; ++i) {
-                    asteroids.emplace_back(Asteroid_Type::MEDIUM, _transform.pos, 
-                            glm::vec2{std::cos(glm::radians(i*angle)), std::sin(glm::radians(i*angle))}, _level_id);
+                    auto direction = glm::vec2{std::cos(glm::radians(i*angle)), std::sin(glm::radians(i*angle))};
+                    auto offset = direction*10.0f;
+                    asteroids.emplace_back(Asteroid_Type::MEDIUM, _transform.pos+offset, 
+                            direction, _level_id);
                 }
                 break;
             }
