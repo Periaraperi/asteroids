@@ -21,6 +21,9 @@ public:
     [[nodiscard]]
     glm::vec2 get_direction_vector() const;
 
+    [[nodiscard]]
+    float get_angle() const;
+
     void iframes(float step);
 
     void hit();

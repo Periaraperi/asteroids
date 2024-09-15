@@ -29,7 +29,6 @@ void Bullet::draw(Graphics& g, float alpha) const
 {
     glm::vec2 p{lerp(_prev_pos.x, _pos.x, alpha), lerp(_prev_pos.y, _pos.y, alpha)};
     g.draw_rect({p.x-_radius, p.y+_radius}, {2*_radius, 2*_radius}, _color);
-    //g.draw_circle({_pos.x-RADIUS, _pos.y+RADIUS}, RADIUS, {0.5f, 0.5f, 0.0f, 1.0f});
 }
 
 void Bullet::explode()

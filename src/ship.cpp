@@ -161,3 +161,6 @@ std::vector<glm::vec2> Ship::get_points_in_world_interpolated(const Transform& i
 
 glm::vec2 Ship::get_direction_vector() const
 { return {std::cos(glm::radians(_transform.angle+90.0f)), std::sin(glm::radians(_transform.angle+90.0f))}; }
+
+float Ship::get_angle() const
+{ return _transform.angle+90.0f; }

@@ -110,6 +110,7 @@ void Asteroid::update(Graphics& g, float dt)
 
 void Asteroid::draw(Graphics& g, float alpha) const
 { 
+    //g.draw_polygon(get_points_in_world(), _color);
     auto t = interpolate_state(_prev_transform, _transform, alpha);
     g.draw_polygon(get_points_in_world_interpolated(t), _color); 
 
