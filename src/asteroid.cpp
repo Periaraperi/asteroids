@@ -28,7 +28,8 @@ std::vector<glm::vec2> Asteroid::init_asteroid_model()
 Asteroid::Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vector,
                    uint8_t level_id)
     :_type{asteroid_type},
-     _transform{pos, {}, 0.0f},
+     _transform{pos, {}, 0.0f}, 
+     _prev_transform{_transform},
      _velocity{dir_vector},
      _angle_rotation_speed{peria::get_float(20.0f, 35.0f)},
      _level_id{level_id}, _dead{false}, 

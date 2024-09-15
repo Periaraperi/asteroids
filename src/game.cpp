@@ -318,7 +318,7 @@ void Game::update_playing_state(float dt)
 
         if (_input_manager.key_released(SDL_SCANCODE_SPACE) &&
             _active_weapon == Active_Weapon::HOMING_GUN) {
-            _homing_bullets.emplace_back(ship_tip, 7.0f, _target_index, _ship->get_direction_vector(), glm::vec4{1.0f, 1.0f, 0.0f, 1.0f});
+            _homing_bullets.emplace_back(ship_tip, 7.0f, _target_index, _ship->get_direction_vector(), _ship->get_angle(), glm::vec4{1.0f, 1.0f, 0.0f, 1.0f});
             _target_index = -1;
             search_str = "";
         }
