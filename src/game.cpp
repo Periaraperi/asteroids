@@ -326,11 +326,12 @@ void Game::update_playing_state(float dt)
     }
 
     for (auto& hb:_homing_bullets) {
-        if (auto target = hb.get_target();
-            target>=0 && target<static_cast<int>(_asteroids.size())) {
-            hb.update(dt, _asteroids[target].get_world_pos());
-            _asteroids[target].set_color({1.0f, 0.5f, 1.0f, 1.0f});
+        const auto target_index = hb.get_target_index();
+        if (target_index>=0 && target_index<static_cast<int>(_asteroids.size())) {
+            hb.set_target_pos(_asteroids[target_index].get_world_pos());
+            _asteroids[target_index].set_color({1.0f, 0.5f, 1.0f, 1.0f});
         }
+        hb.update(dt);
     }
 
     // stores asteroids from potential split
@@ -386,10 +387,7 @@ void Game::update_playing_state(float dt)
             }
 
             for (auto& hb:_homing_bullets) {
-                if (a.dead()) {
-                    hb.set_target(-1);
-                    continue;
-                }
+                if (a.dead()) continue;
                 
                 Polygon bullet_poly{hb.get_world_points()};
                 if (concave_sat(bullet_poly, asteroid_poly)) {
@@ -416,15 +414,35 @@ void Game::update_playing_state(float dt)
                    [](const Bullet& b) { return b.dead(); }),
                    _bullets.end());
 
-    // before erasing dead asteroids, unset target asteroids for homing bullets
-    // if they are dead.
-    // Could be a problem here. FIX if needed
-    for (auto& hb:_homing_bullets) {
-        if (auto target_index = hb.get_target(); 
-            target_index != -1 && target_index < static_cast<int>(_asteroids.size()) &&
-            _asteroids[target_index].dead()) {
-            hb.set_target(-1);
-            hb.explode();
+    // before erasing dead asteroids check 2 scenarios:
+    // 1) homing bullets target asteroid was exploded by other bullet
+    //    in previous frame. In this case unset hb target and let it continue flying
+    //    in last direction it was flying.
+    // 2) homing bullet is targeting asteroid x, in prev frame another bullet killed
+    //    some other asteroid y. If Index of y < Index of x, after vector.erase()
+    //    hb target will point to invalid asteroid, or even could be out of bounds.
+    //    So offset all the prev target indices that are effected by resize.
+    {
+        // each i-th elem stores number of dead asteroids in that prefix 
+        // NOTE: using 1-based indexing here
+        std::vector<int> pref_dead_asteroids(_asteroids.size()+1, 0);
+
+        for (std::size_t i{}; i<_asteroids.size(); ++i) {
+            if (_asteroids[i].dead()) pref_dead_asteroids[i+1] = 1;
+            pref_dead_asteroids[i+1] += pref_dead_asteroids[i];
+        }
+
+        for (std::size_t i{}; i<_homing_bullets.size(); ++i) {
+            auto& hb = _homing_bullets[i];
+            if (const auto target_index = hb.get_target_index(); 
+                target_index>=0 && target_index<static_cast<int>(_asteroids.size())) {
+                if (_asteroids[target_index].dead() && !hb.dead()) { // case 1
+                    hb.set_target_index(-1);
+                }
+                else { // case 2
+                    hb.set_target_index(target_index - pref_dead_asteroids[target_index+1]); // +1 because pref indexing is 1-based
+                }
+            }
         }
     }
 

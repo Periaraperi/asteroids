@@ -15,24 +15,29 @@ Homing_Bullet::Homing_Bullet(glm::vec2 world_pos, float radius, int target_index
     _dead{false}
 {}
 
-void Homing_Bullet::update(float dt, glm::vec2 target)
+void Homing_Bullet::update(float dt)
 {
     auto w = 1600;
     auto h = 900;
 
-    auto direction = target - _transform.pos;
-    direction = glm::normalize(direction);
+    // homing logic
+    if (_target_index != -1) { 
+        auto direction = _target_pos - _transform.pos;
+        direction = glm::normalize(direction);
 
-    // cross product to tell on which side is target
-    auto k = (direction.x*_dir_vector.y - direction.y*_dir_vector.x);
-    auto angle_delta= glm::radians((-k)*ROT_SPEED*dt);
+        // cross product to tell on which side is target
+        auto k = (direction.x*_dir_vector.y - direction.y*_dir_vector.x);
+        auto angle_delta= glm::radians((-k)*ROT_SPEED*dt);
 
-    auto x = _dir_vector.x;
-    auto y = _dir_vector.y;
-    _dir_vector = glm::vec2{
-        std::cos(angle_delta)*x - std::sin(angle_delta)*y,
-        std::sin(angle_delta)*x + std::cos(angle_delta)*y
-    };
+        auto x = _dir_vector.x;
+        auto y = _dir_vector.y;
+        _dir_vector = glm::vec2{
+            std::cos(angle_delta)*x - std::sin(angle_delta)*y,
+            std::sin(angle_delta)*x + std::cos(angle_delta)*y
+        };
+    }
+
+    // if not targeting any more still continue flying 
 
     _prev_transform = _transform;
 
@@ -40,7 +45,7 @@ void Homing_Bullet::update(float dt, glm::vec2 target)
     
     bool wrap = false;
     auto& pos = _transform.pos;
-    auto radius = _transform.scale.x*0.5f;
+    const auto& radius = _transform.scale.x*0.5f;
     if (pos.x-radius > w) {
         pos.x -= (w+radius);
         wrap = true;
@@ -60,11 +65,14 @@ void Homing_Bullet::update(float dt, glm::vec2 target)
     if (wrap) _prev_transform = _transform;
 }
 
-void Homing_Bullet::set_target(int target_index)
+void Homing_Bullet::set_target_index(int target_index)
 { _target_index = target_index; }
 
-int Homing_Bullet::get_target() const
+int Homing_Bullet::get_target_index() const
 { return _target_index; }
+
+void Homing_Bullet::set_target_pos(glm::vec2 target_pos)
+{ _target_pos = target_pos; }
 
 std::vector<glm::vec2> Homing_Bullet::get_world_points() const
 {

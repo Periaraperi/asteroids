@@ -16,12 +16,13 @@ public:
     // world_pos is center of square, 2*radius is side_length
     Homing_Bullet(glm::vec2 world_pos, float radius, int target_index, glm::vec2 initial_direction, float initial_angle, glm::vec4 color);
 
-    void update(float dt, glm::vec2 target);
+    void update(float dt);
 
-    void set_target(int target_index);
+    void set_target_index(int target_index);
+    void set_target_pos(glm::vec2 target_pos);
 
     [[nodiscard]]
-    int get_target() const;
+    int get_target_index() const;
 
     [[nodiscard]]
     std::vector<glm::vec2> get_world_points() const;
@@ -43,6 +44,7 @@ private:
     glm::vec4 _color;
 
     int _target_index;
+    glm::vec2 _target_pos;
 
     bool _dead;
     float _timer{0.0f};
