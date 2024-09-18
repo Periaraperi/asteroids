@@ -124,7 +124,7 @@ bool Ship::is_invincible() const
 
 void Ship::draw(Graphics& g, float alpha) const
 { 
-    auto t = interpolate_state(_prev_transform, _transform, alpha);
+    auto t = peria::interpolate_state(_prev_transform, _transform, alpha);
     if (_invincible) {
         g.draw_polygon(get_points_in_world_interpolated(t), {0.863f, 0.078f, 0.235f, 0.7f}); 
     }

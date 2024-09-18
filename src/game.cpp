@@ -14,6 +14,8 @@
 #include "bullet.hpp"
 #include "homing_bullet.hpp"
 
+#include "helper.hpp"
+
 static std::string search_str = "";
 
 auto dt_copy = 0.0f;
@@ -158,6 +160,9 @@ void Game::render(float alpha)
         {
             _graphics.draw_text("YOU WON", {w*0.5f - 120.0f, h*0.5f}, text_color);
         } break;
+        case Game_State::DEBUG_HELPER:
+            peria::draw(_graphics, _input_manager);
+            break;
     }
 
 #ifdef PERIA_DEBUG
@@ -203,6 +208,13 @@ void Game::update(float dt)
         case Game_State::WON:
             update_won_state();
             break;
+        case Game_State::DEBUG_HELPER:
+            if (_input_manager.key_pressed(SDL_SCANCODE_ESCAPE)) {
+                _state = Game_State::MAIN_MENU;
+                break;
+            }
+            peria::update(dt, _graphics, _input_manager);
+            break;
     }
 }
 
@@ -218,6 +230,10 @@ void Game::update_main_menu_state()
     }
     if (_input_manager.key_pressed(SDL_SCANCODE_ESCAPE)) {
         _running = false; // quit program
+    }
+
+    if (_input_manager.key_pressed(SDL_SCANCODE_M)) {
+        _state = Game_State::DEBUG_HELPER;
     }
 }
 
@@ -254,11 +270,11 @@ void Game::update_playing_state(float dt)
 
     // this is polygon collider for the ship
     // Note that since we don't use sprites, entities visual and colliders are the same
-    Polygon ship_poly{_ship->get_points_in_world()};
+    peria::Polygon ship_poly{_ship->get_points_in_world()};
     const auto& ship_tip = ship_poly.points()[2]; // tip of ship in world space
     
     for (auto& c:_gun_collectibles) {
-        Polygon collectibe_poly{{
+        peria::Polygon collectibe_poly{{
             {c.pos.x, c.pos.y},
             {c.pos.x+c.size.x, c.pos.y},
             {c.pos.x+c.size.x, c.pos.y-c.size.y},
@@ -352,7 +368,7 @@ void Game::update_playing_state(float dt)
     // check collisions between asteroids and other entities
     {
         for (auto& a:_asteroids) {
-            const Polygon asteroid_poly{a.get_points_in_world()};
+            const peria::Polygon asteroid_poly{a.get_points_in_world()};
 
             if (!_ship->is_invincible()) {
                 if (concave_sat(ship_poly, asteroid_poly)) {
@@ -367,7 +383,7 @@ void Game::update_playing_state(float dt)
             for (auto& b:_bullets) {
                 if (a.dead()) continue;
                 
-                Polygon bullet_poly{b.get_world_points()};
+                peria::Polygon bullet_poly{b.get_world_points()};
                 if (concave_sat(bullet_poly, asteroid_poly)) {
                     b.explode();
                     a.hit(); // deal damage
@@ -389,7 +405,7 @@ void Game::update_playing_state(float dt)
             for (auto& hb:_homing_bullets) {
                 if (a.dead()) continue;
                 
-                Polygon bullet_poly{hb.get_world_points()};
+                peria::Polygon bullet_poly{hb.get_world_points()};
                 if (concave_sat(bullet_poly, asteroid_poly)) {
                     hb.explode();
                     a.hit(); // deal damage

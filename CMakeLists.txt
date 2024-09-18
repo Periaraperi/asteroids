@@ -28,12 +28,15 @@ set(SRCS
     ${SRC_DIR}/homing_bullet.cpp
     ${SRC_DIR}/weapons.cpp
 
+    #helper for generating asteroids
+    ${SRC_DIR}/helper.cpp
+
     #external
     ${EXTERNAL_INCLUDE_DIR}/glad/src/glad.c
 )
 
 add_executable(asteroids ${SRCS})
-target_compile_features(asteroids PRIVATE cxx_std_17)
+target_compile_features(asteroids PRIVATE cxx_std_20)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(asteroids PRIVATE PERIA_DEBUG)

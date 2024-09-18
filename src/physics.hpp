@@ -7,6 +7,7 @@
 #include "peria_logger.hpp"
 #include "transform.hpp"
 
+namespace peria {
 struct AABB_Collider {
     glm::vec2 pos;
     glm::vec2 size;
@@ -195,3 +196,4 @@ float lerp(float a, float b, float alpha);
 
 [[nodiscard]]
 Transform interpolate_state(const Transform& prev, const Transform& current, float alpha);
+}

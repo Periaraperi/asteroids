@@ -97,6 +97,6 @@ void Homing_Bullet::explode()
 
 void Homing_Bullet::draw(Graphics& g, float alpha) const
 {
-    auto t = interpolate_state(_prev_transform, _transform, alpha);
+    auto t = peria::interpolate_state(_prev_transform, _transform, alpha);
     g.draw_rect({t.pos.x-t.scale.x*0.5f, t.pos.y-t.scale.y*0.5f}, t.scale, {1.0f, 0.5f, 0.2f, 1.0f});
 }

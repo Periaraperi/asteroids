@@ -19,7 +19,11 @@ std::vector<std::vector<glm::vec2>> predefined_models = {
     {{0.0f, -0.6f}, {-0.8f, -0.2f}, {-0.6f, 0.8f}, {0.65f, 0.9f}, {0.75f, 0.55f}, {0.7f, -0.3f}},
     {{-0.6f, -0.15f}, {-0.65f, 0.1f}, {-0.2f, 0.85f}, {0.5f, 1.0f}, {0.9f, 0.4f}, {0.7f, -0.1f}, {0.2f, -0.3f}},
     {{-0.62f, 0.32f}, {-0.26f, 0.81f}, {0.63f, 0.52f}, {0.26f, 0.24f}, {0.45f, -0.42f}, {-0.63f, -0.20f}},
-    {{-0.72f, 0.07f}, {-0.22f, 0.80f}, {-0.08f, 0.18f}, {0.44f, 0.60f}, {0.69f, -0.80f}, {-0.86f, -0.82f}, {-0.49f, -0.20f}}
+    {{-0.72f, 0.07f}, {-0.22f, 0.80f}, {-0.08f, 0.18f}, {0.44f, 0.60f}, {0.69f, -0.80f}, {-0.86f, -0.82f}, {-0.49f, -0.20f}},
+
+    // made in helper editor
+    {{-0.399375f, 0.124444f}, {-0.2925f, 0.39f}, {-0.1025f, 0.465556f}, {0.05f, 0.38f}, {0.19375f, 0.451111f}, {0.241875f, 0.288889f}, {0.145f, 0.166667f}, {0.165f, 0.0411111f}, {0.325f, 0.0666667f}, {0.340625f, -0.142222f}, {0.146875f, -0.358889f}, {-0.04625f, -0.44f}, {-0.166875f, -0.264444f}, {-0.328125f, -0.265556f}, {-0.28f, -0.0822222f}, {-0.301875f, 0.0444444f}},
+    {{-0.47375f, 0.0333333f}, {-0.4625f, 0.368889f}, {-0.270625f, 0.475556f}, {-0.0825f, 0.427778f}, {0.254375f, 0.456667f}, {0.431875f, 0.318889f}, {0.310625f, 0.174444f}, {0.291875f, -0.0511111f}, {0.40125f, -0.19f}, {0.305f, -0.486667f}, {0.03625f, -0.365556f}, {-0.065f, -0.447778f}, {-0.265f, -0.261111f}, {-0.443125f, -0.255556f}},
 };
 
 std::vector<glm::vec2> Asteroid::init_asteroid_model()
@@ -113,7 +117,7 @@ void Asteroid::update(Graphics& g, float dt)
 void Asteroid::draw(Graphics& g, float alpha) const
 { 
     //g.draw_polygon(get_points_in_world(), _color);
-    auto t = interpolate_state(_prev_transform, _transform, alpha);
+    auto t = peria::interpolate_state(_prev_transform, _transform, alpha);
     g.draw_polygon(get_points_in_world_interpolated(t), _color); 
 
     g.draw_text(std::to_string(_hp), t.pos, {0.2f, 0.2f, 0.4f}, 0.5f);

@@ -454,7 +454,7 @@ void Graphics::draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color)
 void Graphics::draw_polygon(const std::vector<glm::vec2>& poly_points, glm::vec4 color)
 {
     PERIA_ASSERT(poly_points.size() >= 3, "poly must have at least 3 points");
-    auto tris = Polygon{poly_points}.triangulate(true);
+    auto tris = peria::Polygon{poly_points}.triangulate(true);
     for (auto&& t:tris) {
         draw_triangle(t.points()[0], t.points()[1], t.points()[2], color);
     }

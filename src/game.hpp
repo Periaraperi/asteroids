@@ -20,7 +20,8 @@ public:
         MAIN_MENU = 0,
         PLAYING,
         DEAD,
-        WON
+        WON,
+        DEBUG_HELPER
     };
 
     struct Collectible {

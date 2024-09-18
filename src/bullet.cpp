@@ -27,7 +27,7 @@ void Bullet::update(float dt)
 
 void Bullet::draw(Graphics& g, float alpha) const
 {
-    glm::vec2 p{lerp(_prev_pos.x, _pos.x, alpha), lerp(_prev_pos.y, _pos.y, alpha)};
+    glm::vec2 p{peria::lerp(_prev_pos.x, _pos.x, alpha), peria::lerp(_prev_pos.y, _pos.y, alpha)};
     g.draw_rect({p.x-_radius, p.y+_radius}, {2*_radius, 2*_radius}, _color);
 }
 

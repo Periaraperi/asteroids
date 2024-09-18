@@ -2,6 +2,8 @@
 
 #include <glm/vec2.hpp>
 
+namespace peria {
+
 bool aabb(const AABB_Collider &a, const AABB_Collider &b)
 {
     const auto& ax = a.pos.x;
@@ -203,4 +205,5 @@ Transform interpolate_state(const Transform& prev, const Transform& current, flo
                   f(prev.scale.y, current.scale.y)},
         f(prev.angle, current.angle)
     };
+}
 }
