@@ -16,8 +16,6 @@
 
 #include "helper.hpp"
 
-static std::string search_str = "";
-
 auto dt_copy = 0.0f;
 Game::Game(Graphics& graphics, Input_Manager& input_manager)
     :_running{true}, _state{Game_State::MAIN_MENU},
@@ -30,6 +28,8 @@ Game::Game(Graphics& graphics, Input_Manager& input_manager)
     _level_init_calls.push_back(std::bind(&Game::init_level1, this));
     _level_init_calls.push_back(std::bind(&Game::init_level2, this));
     _level_init_calls.push_back(std::bind(&Game::init_level3, this));
+    _level_init_calls.push_back(std::bind(&Game::init_level4, this));
+    _level_init_calls.push_back(std::bind(&Game::init_level5, this));
 
     PERIA_LOG("Game ctor()");
 }
@@ -149,8 +149,6 @@ void Game::render(float alpha)
             if (_active_weapon == Active_Weapon::HOMING_GUN) {
                 _graphics.draw_text("HomingGun: " + std::to_string(static_cast<int>(_homing_gun.timer())), {600.0f, h-30}, text_color, 0.7f);
             }
-
-            _graphics.draw_text(search_str, {900.0f, 550.0f}, {1.0f, 1.0f, 1.0f});
         } break;
         case Game_State::DEAD:
         {
@@ -161,7 +159,9 @@ void Game::render(float alpha)
             _graphics.draw_text("YOU WON", {w*0.5f - 120.0f, h*0.5f}, text_color);
         } break;
         case Game_State::DEBUG_HELPER:
+        #ifdef PERIA_DEBUG
             peria::draw(_graphics, _input_manager);
+        #endif
             break;
     }
 
@@ -209,11 +209,13 @@ void Game::update(float dt)
             update_won_state();
             break;
         case Game_State::DEBUG_HELPER:
+        #ifdef PERIA_DEBUG
             if (_input_manager.key_pressed(SDL_SCANCODE_ESCAPE)) {
                 _state = Game_State::MAIN_MENU;
                 break;
             }
             peria::update(dt, _graphics, _input_manager);
+        #endif
             break;
     }
 }
@@ -224,17 +226,18 @@ void Game::update(float dt)
 
 void Game::update_main_menu_state()
 {
-    if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
+    if (_input_manager.key_pressed(SDL_SCANCODE_RETURN) || _input_manager.key_pressed(SDL_SCANCODE_RETURN2)) {
         _level_init_calls[_level_id]();
         _state = Game_State::PLAYING;
     }
     if (_input_manager.key_pressed(SDL_SCANCODE_ESCAPE)) {
         _running = false; // quit program
     }
-
+#ifdef PERIA_DEBUG
     if (_input_manager.key_pressed(SDL_SCANCODE_M)) {
         _state = Game_State::DEBUG_HELPER;
     }
+#endif
 }
 
 void Game::update_playing_state(float dt)
@@ -322,7 +325,6 @@ void Game::update_playing_state(float dt)
                     {
                     _target_index = _homing_gun.search(ship_tip, _asteroids);
                     _asteroids[_target_index].set_color({1.0f, 0.5f, 1.0f, 1.0f});
-                    search_str = "Searching: " + std::to_string(_target_index);
                     }break;
                 default:
                     PERIA_LOG("WTF?");
@@ -333,7 +335,6 @@ void Game::update_playing_state(float dt)
             _active_weapon == Active_Weapon::HOMING_GUN) {
             _homing_bullets.emplace_back(ship_tip, 7.0f, _target_index, _ship->get_direction_vector(), _ship->get_angle(), glm::vec4{1.0f, 1.0f, 0.0f, 1.0f});
             _target_index = -1;
-            search_str = "";
         }
     }
 
@@ -482,7 +483,7 @@ void Game::update_playing_state(float dt)
 void Game::update_dead_state()
 {
     _level_id = 0;
-    if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
+    if (_input_manager.key_pressed(SDL_SCANCODE_RETURN) || _input_manager.key_pressed(SDL_SCANCODE_RETURN2)) {
         _level_init_calls[_level_id]();
         _state = Game_State::PLAYING;
     }
@@ -493,12 +494,9 @@ void Game::update_dead_state()
 
 void Game::update_won_state()
 {
-    if (_input_manager.key_pressed(SDL_SCANCODE_SPACE)) {
-        ++_level_id;
-        if (_level_id == _level_init_calls.size()) {
-            PERIA_LOG("WON WON WON!");
-            _running = false;
-            return;
+    if (_input_manager.key_pressed(SDL_SCANCODE_RETURN) || _input_manager.key_pressed(SDL_SCANCODE_RETURN2)) {
+        if (_level_id < _level_init_calls.size()-1) {
+            ++_level_id;
         }
         _level_init_calls[_level_id]();
         _state = Game_State::PLAYING;
@@ -508,10 +506,9 @@ void Game::update_won_state()
     }
 }
 
-void Game::init_level1()
+void Game::reset_state()
 {
     auto [w, h] = get_world_size();
-
     _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
     
     _asteroids.clear();
@@ -520,7 +517,11 @@ void Game::init_level1()
     _gun_collectibles.clear();
     _active_weapon = Active_Weapon::GUN;
     _gun.reset();
+}
 
+void Game::init_level1()
+{
+    reset_state();
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
                             glm::vec2{350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 1);
@@ -532,17 +533,7 @@ void Game::init_level1()
 
 void Game::init_level2()
 {
-    auto [w, h] = get_world_size();
-
-    _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
-    
-    _asteroids.clear();
-    _bullets.clear();
-    _homing_bullets.clear();
-    _gun_collectibles.clear();
-    _active_weapon = Active_Weapon::GUN;
-    _gun.reset();
-
+    reset_state();
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
                             glm::vec2{350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 2);
@@ -550,26 +541,11 @@ void Game::init_level2()
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
                             glm::vec2{get_world_size().first-350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 2);
-
-    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
-                            glm::vec2{w*0.5f, h*0.5f-300.0f},
-                            _ship->get_direction_vector(), 2);
 }
 
 void Game::init_level3()
 {
-    auto [w, h] = get_world_size();
-
-    _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
-    auto ship_dir = _ship->get_direction_vector();
-    
-    _asteroids.clear();
-    _bullets.clear();
-    _homing_bullets.clear();
-    _gun_collectibles.clear();
-    _active_weapon = Active_Weapon::GUN;
-    _gun.reset();
-
+    reset_state();
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
                             glm::vec2{350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 3);
@@ -577,12 +553,38 @@ void Game::init_level3()
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
                             glm::vec2{get_world_size().first-350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 3);
+}
+
+void Game::init_level4()
+{
+    reset_state();
+    auto [w, h] = get_world_size();
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
+                            glm::vec2{350.0f, 600.0f},
+                            glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 4);
+
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
+                            glm::vec2{get_world_size().first-350.0f, 600.0f},
+                            glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 4);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
                             glm::vec2{w*0.5f, h*0.5f-300.0f},
-                            ship_dir, 3);
+                            _ship->get_direction_vector(), 4);
+}
+
+void Game::init_level5()
+{
+    reset_state();
+    auto [w, h] = get_world_size();
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
+                            glm::vec2{350.0f, 600.0f},
+                            glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 5);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
-                            glm::vec2{w*0.5f, h*0.5f+300.0f},
-                            glm::vec2{ship_dir.x, -ship_dir.y}, 3);
+                            glm::vec2{get_world_size().first-350.0f, 600.0f},
+                            glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 5);
+
+    _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
+                            glm::vec2{w*0.5f, h*0.5f-300.0f},
+                            _ship->get_direction_vector(), 5);
 }

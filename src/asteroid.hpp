@@ -53,7 +53,7 @@ public:
 private:
 
     [[nodiscard]]
-    std::vector<glm::vec2> init_asteroid_model();
+    std::vector<glm::vec2> init_asteroid_model(Asteroid_Type type);
 
 private:
     Asteroid_Type _type;

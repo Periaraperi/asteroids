@@ -65,7 +65,6 @@ namespace peria {
         const auto mouse = get_mapped_mouse(g, im);
         auto mx = mouse.x;
         auto my = mouse.y;
-        std::cerr << mx << " " << my << '\n';
         my = h-my;
 
         if (buttons[0].is_hovered(mx, my) && im.mouse_pressed(Mouse_Button::LEFT)) {

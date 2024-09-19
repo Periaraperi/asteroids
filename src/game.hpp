@@ -53,13 +53,12 @@ private:
     std::pair<uint32_t, uint32_t> get_world_size()
     { return {1600, 900}; }
 
-    // TODO: in the future add more levels with different difficulty and variation.
+    void reset_state();
     void init_level1();
     void init_level2();
     void init_level3();
     void init_level4();
     void init_level5();
-    void test_level();
 private:
     enum class Active_Weapon {
         GUN = 0,
@@ -84,15 +83,12 @@ private:
 
     Active_Weapon _active_weapon;
 
-    //std::vector<Collectible> _shotgun_collectibles;
-    //std::vector<Collectible> _homing_gun_collectibles;
     std::vector<Collectible> _gun_collectibles;
 
     int _target_index{-1};
 
     std::size_t _level_id;
     std::vector<std::function<void()>> _level_init_calls;
-
 public:
     // disable copy move ops
     Game(const Game&) = delete;
