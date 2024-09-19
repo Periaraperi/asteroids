@@ -29,6 +29,8 @@ namespace {
 
 namespace peria {
 
+    constexpr auto w = 1600;
+    constexpr auto h = 900;
     std::vector<glm::vec2> poly_points;
 
     enum class Button_Type {
@@ -51,10 +53,19 @@ namespace peria {
     };
     std::array<Button, 2> buttons {{ {.text = "SAVE"}, {.text = "CLEAR"} }};
 
+    glm::vec2 get_mapped_mouse(Graphics& g, Input_Manager& im)
+    {
+        const auto [window_w, window_h] = g.get_window_size();
+        auto [mx, my] = im.get_mouse();
+        return {(static_cast<float>(mx)/window_w)*w, (static_cast<float>(my)/window_h)*h};
+    }
+
     void update(float dt, Graphics& g, Input_Manager& im)
     {
-        const auto [w,h] = g.get_window_size();
-        auto [mx, my] = im.get_mouse();
+        const auto mouse = get_mapped_mouse(g, im);
+        auto mx = mouse.x;
+        auto my = mouse.y;
+        std::cerr << mx << " " << my << '\n';
         my = h-my;
 
         if (buttons[0].is_hovered(mx, my) && im.mouse_pressed(Mouse_Button::LEFT)) {
@@ -76,8 +87,9 @@ namespace peria {
 
     void draw(Graphics& g, Input_Manager& im)
     {
-        const auto [w,h] = g.get_window_size();
-        const auto [mx, my] = im.get_mouse();
+        const auto mouse = get_mapped_mouse(g, im);
+        const auto& mx = mouse.x;
+        const auto& my = mouse.y;
 
         g.draw_line({0.0f, h*0.5f}, {w, h*0.5f}, {1.0f, 1.0f, 1.0f, 1.0f});
         g.draw_line({w*0.5f, h}, {w*0.5f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f});
