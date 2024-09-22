@@ -5,6 +5,7 @@
 
 #include "graphics.hpp"
 #include "physics.hpp"
+#include "game.hpp"
 #include "peria_utils.hpp"
 
 std::array<float, 3> get_speed {
@@ -74,7 +75,7 @@ Asteroid::Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vec
     }
 }
 
-void Asteroid::update(Graphics& g, float dt)
+void Asteroid::update(float dt)
 {
     // store prev state
     _prev_transform = _transform;
@@ -91,27 +92,25 @@ void Asteroid::update(Graphics& g, float dt)
     auto min_y = std::min_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.y<b.y;})->y;
     auto max_y = std::max_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.y<b.y;})->y;
     
-    //auto [sw, sh] = g.get_window_size();
-    auto sw = 1600;
-    auto sh = 900;
+    const auto [w, h] = Game::get_world_size();
 
     bool wrap = false;
 
-    if (min_x > sw) {
-        _transform.pos.x -= (sw+max_x-min_x);
+    if (min_x > w) {
+        _transform.pos.x -= (w+max_x-min_x);
         wrap = true;
     }
     else if (max_x < 0.0f) {
-        _transform.pos.x += (sw+max_x-min_x);
+        _transform.pos.x += (w+max_x-min_x);
         wrap = true;
     }
 
-    if (min_y > sh) {
-        _transform.pos.y -= (sh+max_y-min_y);
+    if (min_y > h) {
+        _transform.pos.y -= (h+max_y-min_y);
         wrap = true;
     }
     else if (max_y < 0.0f) {
-        _transform.pos.y += (sh+max_y-min_y);
+        _transform.pos.y += (h+max_y-min_y);
         wrap = true;
     }
 

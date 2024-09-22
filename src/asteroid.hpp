@@ -19,7 +19,7 @@ public:
     // dir_vector - normalized direction vector.
     Asteroid(Asteroid_Type asteroid_type, glm::vec2 pos, glm::vec2 dir_vector, uint8_t level_id);
 
-    void update(Graphics& g, float dt);
+    void update(float dt);
     void draw(Graphics& g, float alpha) const;
 
     void set_color(glm::vec4 color) 

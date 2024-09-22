@@ -8,8 +8,8 @@ class Graphics;
 
 class Ship {
 public:
-    explicit Ship(glm::vec2 world_pos);
-    void update(Graphics& g, Input_Manager& im, float dt);
+    Ship(glm::vec2 world_pos);
+    void update(Input_Manager& im, float dt);
     void draw(Graphics& g, float alpha) const;
 
     [[nodiscard]]

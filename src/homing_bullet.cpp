@@ -2,9 +2,10 @@
 
 #include "graphics.hpp"
 #include "physics.hpp"
+#include "game.hpp"
 
-static constexpr float ROT_SPEED = 100.0f;
-static constexpr float BULLET_SPEED = 350.0f;
+static constexpr float ROT_SPEED = 200.0f;
+static constexpr float BULLET_SPEED = 400.0f;
 
 Homing_Bullet::Homing_Bullet(glm::vec2 world_pos, float radius, int target_index, glm::vec2 initial_direction, float initial_angle, glm::vec4 color)
     :_transform{world_pos, {radius*2.0f, radius*2.0f}, initial_angle},
@@ -17,8 +18,7 @@ Homing_Bullet::Homing_Bullet(glm::vec2 world_pos, float radius, int target_index
 
 void Homing_Bullet::update(float dt)
 {
-    auto w = 1600;
-    auto h = 900;
+    const auto [w, h] = Game::get_world_size();
 
     // homing logic
     if (_target_index != -1) { 

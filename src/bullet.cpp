@@ -2,6 +2,7 @@
 
 #include "graphics.hpp"
 #include "physics.hpp"
+#include "game.hpp"
 
 // in world space
 constexpr float SPEED = 500.0f;
@@ -16,9 +17,7 @@ void Bullet::update(float dt)
 
     _pos += _dir_vector*SPEED*dt;
 
-    //auto [w, h] = g.get_window_size();
-    auto w = 1600;
-    auto h = 900;
+    const auto [w, h] = Game::get_world_size();
     if (_pos.x-_radius > w || _pos.x+_radius < 0.0f ||
         _pos.y-_radius > h || _pos.y+_radius < 0.0f) {
         _dead = true;

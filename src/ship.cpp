@@ -3,16 +3,18 @@
 #include "graphics.hpp"
 #include "input_manager.hpp"
 #include "physics.hpp"
+#include "game.hpp"
 
 #include <algorithm>
 
 #include <glm/gtc/matrix_transform.hpp>
 
-constexpr float ROTATION_SPEED = 180.0f;
-constexpr float SPEED = 400.0f;
-float DECCELERATION_SPEED = 180.0f;
+float ROTATION_SPEED = 150.0f;
+float SPEED = 350.0f;
+float DECCELERATION_SPEED = SPEED*0.75f;
 bool first_move = false;
 
+[[nodiscard]]
 std::vector<glm::vec2>
 init_ship_model()
 {
@@ -31,7 +33,7 @@ Ship::Ship(glm::vec2 world_pos)
      _invincible{false}
 {}
 
-void Ship::update(Graphics& g, Input_Manager& im, float dt)
+void Ship::update(Input_Manager& im, float dt)
 {
     _prev_transform = _transform;
 
@@ -47,7 +49,7 @@ void Ship::update(Graphics& g, Input_Manager& im, float dt)
 
     if (im.key_down(SDL_SCANCODE_W)) {
         first_move = true;
-        DECCELERATION_SPEED = 180.0f; // reset
+        DECCELERATION_SPEED = SPEED*0.70f; // reset
         _velocity = get_direction_vector()*SPEED*dt;
         _transform.pos += _velocity;
     }
@@ -55,7 +57,7 @@ void Ship::update(Graphics& g, Input_Manager& im, float dt)
         if (first_move) {
             _velocity = get_direction_vector()*DECCELERATION_SPEED*dt;
             _transform.pos += _velocity;
-            DECCELERATION_SPEED -= 7.0f*dt;
+            DECCELERATION_SPEED -= 25.0f*dt;
             if (DECCELERATION_SPEED < 0.0f) DECCELERATION_SPEED = 0.0f;
         }
     }
@@ -67,26 +69,24 @@ void Ship::update(Graphics& g, Input_Manager& im, float dt)
     auto min_y = std::min_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.y<b.y;})->y;
     auto max_y = std::max_element(world_pos.begin(), world_pos.end(), [](glm::vec2 a, glm::vec2 b) {return a.y<b.y;})->y;
     
-    //auto [sw, sh] = g.get_window_size();
-    auto sw = 1600;
-    auto sh = 900;
+    const auto [w, h] = Game::get_world_size();
 
     bool wrap = false;
-    if (min_x > sw) {
-        _transform.pos.x -= (sw+max_x-min_x);
+    if (min_x > w) {
+        _transform.pos.x -= (w+max_x-min_x);
         wrap = true;
     }
     else if (max_x < 0.0f) {
-        _transform.pos.x += (sw+max_x-min_x);
+        _transform.pos.x += (w+max_x-min_x);
         wrap = true;
     }
 
-    if (min_y > sh) {
-        _transform.pos.y -= (sh+max_y-min_y);
+    if (min_y > h) {
+        _transform.pos.y -= (h+max_y-min_y);
         wrap = true;
     }
     else if (max_y < 0.0f) {
-        _transform.pos.y += (sh+max_y-min_y);
+        _transform.pos.y += (h+max_y-min_y);
         wrap = true;
     }
 

@@ -60,7 +60,7 @@ namespace peria {
         return {(static_cast<float>(mx)/window_w)*w, (static_cast<float>(my)/window_h)*h};
     }
 
-    void update(float dt, Graphics& g, Input_Manager& im)
+    void update(Graphics& g, Input_Manager& im)
     {
         const auto mouse = get_mapped_mouse(g, im);
         auto mx = mouse.x;

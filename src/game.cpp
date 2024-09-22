@@ -214,7 +214,7 @@ void Game::update(float dt)
                 _state = Game_State::MAIN_MENU;
                 break;
             }
-            peria::update(dt, _graphics, _input_manager);
+            peria::update(_graphics, _input_manager);
         #endif
             break;
     }
@@ -223,7 +223,6 @@ void Game::update(float dt)
 // ============================
 // Game state specific updates.
 // ============================
-
 void Game::update_main_menu_state()
 {
     if (_input_manager.key_pressed(SDL_SCANCODE_RETURN) || _input_manager.key_pressed(SDL_SCANCODE_RETURN2)) {
@@ -266,10 +265,10 @@ void Game::update_playing_state(float dt)
     }
 
     for (auto& a:_asteroids) { 
-        a.update(_graphics, dt);
+        a.update(dt);
     }
 
-    _ship->update(_graphics, _input_manager, dt);
+    _ship->update(_input_manager, dt);
 
     // this is polygon collider for the ship
     // Note that since we don't use sprites, entities visual and colliders are the same
@@ -508,7 +507,7 @@ void Game::update_won_state()
 
 void Game::reset_state()
 {
-    auto [w, h] = get_world_size();
+    const auto [w, h] = get_world_size();
     _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
     
     _asteroids.clear();
@@ -527,8 +526,8 @@ void Game::init_level1()
                             glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 1);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
-                            glm::vec2{get_world_size().first-350.0f, 600.0f},
-                            glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 1);
+                            glm::vec2{get_world_size().x-350.0f, 600.0f},
+                            glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))},   1);
 }
 
 void Game::init_level2()
@@ -536,10 +535,10 @@ void Game::init_level2()
     reset_state();
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
                             glm::vec2{350.0f, 600.0f},
-                            glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 2);
+                            glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))},   2);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
-                            glm::vec2{get_world_size().first-350.0f, 600.0f},
+                            glm::vec2{get_world_size().x-350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 2);
 }
 
@@ -551,20 +550,20 @@ void Game::init_level3()
                             glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 3);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
-                            glm::vec2{get_world_size().first-350.0f, 600.0f},
+                            glm::vec2{get_world_size().x-350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 3);
 }
 
 void Game::init_level4()
 {
     reset_state();
-    auto [w, h] = get_world_size();
+    const auto [w, h] = get_world_size();
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
                             glm::vec2{350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 4);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
-                            glm::vec2{get_world_size().first-350.0f, 600.0f},
+                            glm::vec2{get_world_size().x-350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 4);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
@@ -575,13 +574,13 @@ void Game::init_level4()
 void Game::init_level5()
 {
     reset_state();
-    auto [w, h] = get_world_size();
+    const auto [w, h] = get_world_size();
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE, 
                             glm::vec2{350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(-30.0f)), std::sin(glm::radians(-30.0f))}, 5);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,
-                            glm::vec2{get_world_size().first-350.0f, 600.0f},
+                            glm::vec2{get_world_size().x-350.0f, 600.0f},
                             glm::vec2{std::cos(glm::radians(210.0f)), std::sin(glm::radians(210.0f))}, 5);
 
     _asteroids.emplace_back(Asteroid::Asteroid_Type::LARGE,

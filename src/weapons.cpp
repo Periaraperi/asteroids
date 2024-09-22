@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <glm/trigonometric.hpp>
-#include "graphics.hpp"
 
 // Delay - number of seconds per shots
 // Timer - how many seconds a weapong can be used
@@ -17,7 +16,7 @@ void Gun::reset()
 
 // default gun shoots 1 bullet at a time from tip of the ship with relatively small delay.
 void Gun::shoot(const glm::vec2& pos, const glm::vec2& dir,
-                std::vector<Bullet>& bullets)
+                std::vector<Bullet>& bullets) 
 { 
     bullets.emplace_back(pos, 4.5f, dir, _bullet_color); 
     _delay = Gun::_initial_delay;

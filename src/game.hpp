@@ -35,10 +35,19 @@ public:
         bool taken{false};
     };
 
+    struct World_Size {
+        float x;
+        float y;
+    };
+
     Game(Graphics& graphics, Input_Manager& input_manager);
     ~Game();
     
     void run();
+
+    [[nodiscard]]
+    static World_Size get_world_size()
+    { return {1600.0f, 900.0f}; }
 
 private:
     void update(float dt);
@@ -49,9 +58,6 @@ private:
     void update_dead_state();
     void update_won_state();
 
-    [[nodiscard]]
-    std::pair<uint32_t, uint32_t> get_world_size()
-    { return {1600, 900}; }
 
     void reset_state();
     void init_level1();
