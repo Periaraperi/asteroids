@@ -101,7 +101,7 @@ void Game::run()
 void Game::render(float alpha)
 {
     glm::vec3 text_color{1.0f, 1.0f, 1.0f};
-    _graphics.bind_fbo(); // draw to offscreen texture
+    _graphics.bind_fbo_multisampled(); // draw to offscreen buffer
 
     // DRAW CALLS HERE!
 

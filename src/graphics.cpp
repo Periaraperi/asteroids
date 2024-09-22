@@ -132,7 +132,8 @@ Graphics::Graphics(const Window_Settings& settings)
     _texture_shader = std::make_unique<Shader>("res/shaders/texture_vert.glsl", "res/shaders/texture_frag.glsl");
 
     // 1600 900 is game world
-    _fbo = std::make_unique<Frame_Buffer>(1600, 900);
+    _fbo = std::make_unique<Frame_Buffer>(1600, 900, Frame_Buffer::Frame_Buffer_Type::REGULAR);
+    _fbo_multisampled = std::make_unique<Frame_Buffer>(1600, 900, Frame_Buffer::Frame_Buffer_Type::MULTI_SAMPLE);
     _texture_shader->bind();
     _texture_shader->set_int("u_texture", 0);
     _texture_shader->unbind();
@@ -304,6 +305,7 @@ void Graphics::cleanup()
 	_text_atlas.reset();
 
 	_fbo.reset();
+	_fbo_multisampled.reset();
 
     SDL_GL_DeleteContext(_context);
 
@@ -339,7 +341,10 @@ void Graphics::clear_buffer()
 // will scale game world texture to screen by stretching in both directions
 void Graphics::render_to_screen()
 {
-    _fbo->unbind(); // bind default frame buffer
+    Frame_Buffer::copy_to(_fbo_multisampled.get(), _fbo.get());
+    // bind default frame buffer
+    _fbo->unbind();
+    _fbo_multisampled->unbind();
     GL_CALL(glViewport(0, 0, _settings.width, _settings.height));
     clear_buffer();
     _texture_shader->bind();

@@ -80,8 +80,8 @@ public:
     void flush();
 
     // fbo stuff
-    void bind_fbo()
-    { _fbo->bind(); }
+    void bind_fbo_multisampled()
+    { _fbo_multisampled->bind(); }
 
     void render_to_screen();
 
@@ -157,6 +157,7 @@ private:
     std::unordered_map<char, Glyph> _glyphs;
 
     std::unique_ptr<Frame_Buffer> _fbo;
+    std::unique_ptr<Frame_Buffer> _fbo_multisampled;
 
     // vao, vbo, ibo information for batching
 

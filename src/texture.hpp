@@ -5,6 +5,11 @@
 
 class Texture {
 public:
+    enum class Texture_Type {
+        REGULAR = 0,
+        MULTISAMPLE
+    };
+
     // Creates GLTexture from ttf bitmap buffer
     Texture(uint32_t width, uint32_t height, const void* bitmap_buffer_data);
     
@@ -12,7 +17,7 @@ public:
     Texture(uint32_t width, uint32_t height, int32_t internal_format, uint32_t format);
 
     // for framebuffer.
-    Texture(uint32_t width, uint32_t height);
+    Texture(uint32_t width, uint32_t height, Texture_Type type);
 
     ~Texture();
 
@@ -32,6 +37,7 @@ private:
 
     uint32_t _width;
     uint32_t _height;
+    Texture_Type _type;
 
     // unsigned byte buffer for texture
     std::vector<uint8_t> _buffer;

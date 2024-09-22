@@ -43,22 +43,29 @@ Texture::Texture(uint32_t width, uint32_t height, int32_t internal_format, uint3
 }
 
 
-Texture::Texture(uint32_t width, uint32_t height)
-    :_width{width}, _height{height}
+Texture::Texture(uint32_t width, uint32_t height, Texture_Type type)
+    :_width{width}, _height{height}, _type{type}
 {
     PERIA_LOG("FrameBuffer Texture Ctor()");
 
     GL_CALL(glGenTextures(1, &_tex));
     bind();
     
-    GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
-                         0, GL_RGBA, GL_UNSIGNED_BYTE, 
-                         nullptr));
+    if (_type == Texture_Type::REGULAR) {
+        GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height,
+                             0, GL_RGBA, GL_UNSIGNED_BYTE, 
+                             nullptr));
 
-    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-    GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+        GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+        GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
 
-    GL_CALL(glBindTexture(GL_TEXTURE_2D, 0)); // unbind
+        GL_CALL(glBindTexture(GL_TEXTURE_2D, 0)); // unbind
+    }
+    else if (_type == Texture_Type::MULTISAMPLE) {
+        GL_CALL(glad_glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA, width, height, GL_TRUE));
+
+        GL_CALL(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0)); // unbind
+    }
 }
 
 Texture::~Texture()
@@ -70,7 +77,12 @@ Texture::~Texture()
 void Texture::bind(uint8_t tex_slot) const
 {
     GL_CALL(glActiveTexture(GL_TEXTURE0+tex_slot));
-    GL_CALL(glBindTexture(GL_TEXTURE_2D, _tex));
+    if (_type == Texture_Type::REGULAR) {
+        GL_CALL(glBindTexture(GL_TEXTURE_2D, _tex));
+    }
+    else if (_type == Texture_Type::MULTISAMPLE) {
+        GL_CALL(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, _tex));
+    }
 }
 
 // expects bottom left corner of sub-rectangle. y-axis points up

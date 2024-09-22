@@ -7,7 +7,11 @@
 
 class Frame_Buffer {
 public:
-    Frame_Buffer(uint32_t width, uint32_t height);
+    enum class Frame_Buffer_Type {
+        REGULAR = 0,
+        MULTI_SAMPLE,
+    };
+    Frame_Buffer(uint32_t width, uint32_t height, Frame_Buffer_Type type);
     ~Frame_Buffer();
 
     void bind() const;
@@ -15,8 +19,10 @@ public:
 
     void bind_color_texture();
 
+    static void copy_to(Frame_Buffer* src, Frame_Buffer* dest);
 private:
     uint32_t _fbo;
+    Frame_Buffer_Type _type;
     std::unique_ptr<Texture> _frame_buffer_texture;
 
 public:
