@@ -1,7 +1,6 @@
 #include "helper.hpp"
 #include "graphics.hpp"
 #include "input_manager.hpp"
-
 #include <vector>
 #include <string>
 #include <array>

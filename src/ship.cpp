@@ -9,9 +9,6 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-float ROTATION_SPEED = 150.0f;
-float SPEED = 350.0f;
-float DECCELERATION_SPEED = SPEED*0.75f;
 bool first_move = false;
 
 [[nodiscard]]
@@ -27,11 +24,19 @@ init_ship_model()
 }
 
 Ship::Ship(glm::vec2 world_pos)
-    :_ship_model{init_ship_model()},
+    :_ship_model{init_ship_model()}, _initial_pos{world_pos},
      _transform{world_pos, {25.0f, 20.0f}, 0.0f},
-     _velocity{0.0f, 0.0f}, _hp{3}, _iframe_duration{2.0f},
+     _velocity{0.0f, 0.0f}, _decceleration_speed{_speed*0.75f},
      _invincible{false}
 {}
+
+void Ship::restart()
+{
+    _hp = _max_hp;
+    _transform.angle = 0.0f;
+    _transform.pos = _initial_pos;
+    _prev_transform = _transform;
+}
 
 void Ship::update(Input_Manager& im, float dt)
 {
@@ -39,26 +44,26 @@ void Ship::update(Input_Manager& im, float dt)
 
     // ROTATION
     if (im.key_down(SDL_SCANCODE_A)) {
-        _transform.angle += ROTATION_SPEED*dt;
+        _transform.angle += _rot_speed*dt;
         Transform::clamp_angle(_transform.angle);
     }
     if (im.key_down(SDL_SCANCODE_D)) {
-        _transform.angle -= ROTATION_SPEED*dt;
+        _transform.angle -= _rot_speed*dt;
         Transform::clamp_angle(_transform.angle);
     }
 
     if (im.key_down(SDL_SCANCODE_W)) {
         first_move = true;
-        DECCELERATION_SPEED = SPEED*0.70f; // reset
-        _velocity = get_direction_vector()*SPEED*dt;
+        _decceleration_speed = _speed*0.70f; // reset
+        _velocity = get_direction_vector()*_speed*dt;
         _transform.pos += _velocity;
     }
     else {
         if (first_move) {
-            _velocity = get_direction_vector()*DECCELERATION_SPEED*dt;
+            _velocity = get_direction_vector()*_decceleration_speed*dt;
             _transform.pos += _velocity;
-            DECCELERATION_SPEED -= 25.0f*dt;
-            if (DECCELERATION_SPEED < 0.0f) DECCELERATION_SPEED = 0.0f;
+            _decceleration_speed -= 25.0f*dt;
+            if (_decceleration_speed < 0.0f) _decceleration_speed = 0.0f;
         }
     }
 
@@ -121,6 +126,18 @@ uint8_t Ship::hp() const
 
 bool Ship::is_invincible() const
 { return _invincible; }
+
+void Ship::upgrade_max_health()
+{ ++_max_hp; }
+
+void Ship::upgrade_speed()
+{ 
+    _speed += 50.0f;
+    _decceleration_speed = _speed*0.75f; 
+}
+
+void Ship::upgrade_rotation_speed()
+{ _rot_speed += 35.0f; }
 
 void Ship::draw(Graphics& g, float alpha) const
 { 

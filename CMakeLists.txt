@@ -19,6 +19,7 @@ set(SRCS
     ${SRC_DIR}/opengl_errors.cpp
     ${SRC_DIR}/physics.cpp
     ${SRC_DIR}/framebuffer.cpp
+    ${SRC_DIR}/button.cpp
 
     # game specific
     ${SRC_DIR}/game.cpp

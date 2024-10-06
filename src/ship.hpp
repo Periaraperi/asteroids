@@ -34,15 +34,25 @@ public:
     [[nodiscard]]
     bool is_invincible() const;
 
+    void restart();
+
+    void upgrade_max_health();
+    void upgrade_speed();
+    void upgrade_rotation_speed();
 private:
     std::vector<glm::vec2> _ship_model;
 
+    glm::vec2 _initial_pos;
     Transform _transform{};
     Transform _prev_transform{};
 
     glm::vec2 _velocity;
-    uint8_t _hp;
+    uint8_t _max_hp{3};
+    uint8_t _hp{3};
 
-    float _iframe_duration;
+    float _iframe_duration{2.0f};
+    float _speed{350.0f};
+    float _rot_speed{150.0f};
+    float _decceleration_speed;
     bool _invincible;
 };

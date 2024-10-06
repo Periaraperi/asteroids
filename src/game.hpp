@@ -6,6 +6,7 @@
 
 #include "asteroid.hpp"
 #include "weapons.hpp"
+#include "button.hpp"
 
 class Graphics;
 class Input_Manager;
@@ -13,6 +14,7 @@ class Ship;
 class Asteroid;
 class Bullet;
 class Homing_Bullet;
+class Upgrade_Menu;
 
 class Game {
 public:
@@ -58,7 +60,6 @@ private:
     void update_dead_state();
     void update_won_state();
 
-
     void reset_state();
     void init_level1();
     void init_level2();
@@ -70,6 +71,12 @@ private:
         GUN = 0,
         SHOTGUN,
         HOMING_GUN
+    };
+
+    struct Upgrade {
+        Upgrade(Button&& button) :b{std::move(button)} {}
+        Button b;
+        bool upgraded{false};
     };
 
     bool _running;
@@ -95,6 +102,16 @@ private:
 
     std::size_t _level_id;
     std::vector<std::function<void()>> _level_init_calls;
+
+    // buttons
+    std::vector<Upgrade> _gun_upgrades;
+    std::vector<Upgrade> _shotgun_upgrades;
+    std::vector<Upgrade> _homing_gun_upgrades;
+    std::vector<Upgrade> _ship_speed_upgrades;
+    std::vector<Upgrade> _ship_rotation_speed_upgrades;
+    std::vector<Upgrade> _ship_max_health_upgrades;
+
+    uint8_t _upgrade_count{0};
 public:
     // disable copy move ops
     Game(const Game&) = delete;
