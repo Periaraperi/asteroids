@@ -24,6 +24,9 @@ void Gun::shoot(const glm::vec2& pos, const glm::vec2& dir,
 
 float Gun::delay() const
 { return _delay; }
+
+void Gun::set_initial_delay(const float delay)
+{ _initial_delay = delay; }
 // END GUN =============================================================================
 // =====================================================================================
 

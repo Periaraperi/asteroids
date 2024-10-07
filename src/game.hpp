@@ -14,7 +14,6 @@ class Ship;
 class Asteroid;
 class Bullet;
 class Homing_Bullet;
-class Upgrade_Menu;
 
 class Game {
 public:
@@ -61,6 +60,8 @@ private:
     void update_won_state();
 
     void reset_state();
+    void full_reset_on_dead_state();
+
     void init_level1();
     void init_level2();
     void init_level3();

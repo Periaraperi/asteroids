@@ -22,6 +22,9 @@ constexpr glm::vec4 UPGRADED_BUTTON_COLOR_BORDER{0.0f, 0.502f, 0.502f, 1.0f};
 constexpr glm::vec4 NOT_UPGRADED_BUTTON_COLOR_FG{0.545f, 0.0f, 0.0f, 1.0f};
 constexpr glm::vec4 NOT_UPGRADED_BUTTON_COLOR_BORDER{0.863f, 0.078f, 0.235f, 1.0f};
 
+constexpr glm::vec4 DISABLED_UPGRADE_BUTTON_COLOR_FG{0.753f, 0.753f, 0.753f, 1.0f};
+constexpr glm::vec4 DISABLED_UPGRADE_BUTTON_COLOR_BORDER{0.502f, 0.502f, 0.502f, 1.0f};
+
 auto dt_copy = 0.0f;
 Game::Game(Graphics& graphics, Input_Manager& input_manager)
     :_running{true}, _state{Game_State::MAIN_MENU},
@@ -29,8 +32,6 @@ Game::Game(Graphics& graphics, Input_Manager& input_manager)
      _active_weapon{Active_Weapon::GUN},
      _level_id{0}
 {
-    const auto [w, h] = get_world_size();
-    _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
     _bullets.reserve(512); // reserve some space since we know we will shoot a lot
     _level_init_calls.reserve(5);
     _level_init_calls.push_back(std::bind(&Game::init_level1, this));
@@ -39,6 +40,7 @@ Game::Game(Graphics& graphics, Input_Manager& input_manager)
     _level_init_calls.push_back(std::bind(&Game::init_level4, this));
     _level_init_calls.push_back(std::bind(&Game::init_level5, this));
 
+    const auto [w, h] = get_world_size();
     const auto size_x = 100.0f;
     const auto size_y = 50.0f;
 
@@ -71,6 +73,8 @@ Game::Game(Graphics& graphics, Input_Manager& input_manager)
             _homing_gun_upgrades.emplace_back(Button{{start_x + (offset+size_x)*i, start_y - (offset+size_y)*5, size_x, size_y}, NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER, 5.0f});
         }
     }
+
+    full_reset_on_dead_state();
 
     PERIA_LOG("Game ctor()");
 }
@@ -565,35 +569,7 @@ void Game::update_playing_state(float dt)
 void Game::update_dead_state()
 {
     // reset all levels and upgrades
-    _level_id = 0;
-    _upgrade_count = 0;
-    const auto [w, h] = get_world_size();
-    _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
-
-    for (auto& u:_ship_speed_upgrades) {
-        u.b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
-        u.upgraded = false;
-    }
-    for (auto& u:_ship_rotation_speed_upgrades) {
-        u.b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
-        u.upgraded = false;
-    }
-    for (auto& u:_ship_max_health_upgrades) {
-        u.b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
-        u.upgraded = false;
-    }
-    for (auto& u:_gun_upgrades) {
-        u.b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
-        u.upgraded = false;
-    }
-    for (auto& u:_shotgun_upgrades) {
-        u.b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
-        u.upgraded = false;
-    }
-    for (auto& u:_homing_gun_upgrades) {
-        u.b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
-        u.upgraded = false;
-    }
+    full_reset_on_dead_state();
 
     if (_input_manager.key_pressed(SDL_SCANCODE_RETURN) || _input_manager.key_pressed(SDL_SCANCODE_RETURN2)) {
         _level_init_calls[_level_id]();
@@ -607,9 +583,7 @@ void Game::update_dead_state()
 void Game::update_won_state()
 {
     // choose upgrade here
-    auto mouse = peria::get_mapped_mouse(_graphics, _input_manager);
-    mouse.y = get_world_size().y - mouse.y;
-
+    auto mouse = peria::get_mapped_mouse(_graphics, _input_manager); mouse.y = get_world_size().y - mouse.y;
     if (_upgrade_count > 0) {
         for (std::size_t i{}; i<_ship_speed_upgrades.size(); ++i) {
             auto& b = _ship_speed_upgrades[i].b;
@@ -619,6 +593,9 @@ void Game::update_won_state()
                 _ship->upgrade_speed();
                 --_upgrade_count;
                 b.set_colors(UPGRADED_BUTTON_COLOR_FG, UPGRADED_BUTTON_COLOR_BORDER);
+                if (i+1 < _ship_speed_upgrades.size()) {
+                    _ship_speed_upgrades[i+1].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
+                }
             }
         }
     }
@@ -632,6 +609,9 @@ void Game::update_won_state()
                 _ship->upgrade_rotation_speed();
                 --_upgrade_count;
                 b.set_colors(UPGRADED_BUTTON_COLOR_FG, UPGRADED_BUTTON_COLOR_BORDER);
+                if (i+1 < _ship_rotation_speed_upgrades.size()) {
+                    _ship_rotation_speed_upgrades[i+1].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
+                }
             }
         }
     }
@@ -645,13 +625,36 @@ void Game::update_won_state()
                 _ship->upgrade_max_health();
                 --_upgrade_count;
                 b.set_colors(UPGRADED_BUTTON_COLOR_FG, UPGRADED_BUTTON_COLOR_BORDER);
+                if (i+1 < _ship_max_health_upgrades.size()) {
+                    _ship_max_health_upgrades[i+1].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
+                }
             }
         }
     }
 
     // TODO: gun upgrades 
     if (_upgrade_count > 0) {
+        auto gun_upgrade = [](const auto i) {
+            if (i==0) return 0.35f;
+            if (i==1) return 0.30f;
+            if (i==2) return 0.25f;
+        };
+
+        for (std::size_t i{}; i<_gun_upgrades.size(); ++i) {
+            auto& b = _gun_upgrades[i].b;
+            if (b.is_hovered(mouse.x, mouse.y) && _input_manager.mouse_pressed(Mouse_Button::LEFT) &&
+                ((i > 0 && _gun_upgrades[i-1].upgraded) || i == 0)) {
+                _gun_upgrades[i].upgraded = true;
+                _gun.set_initial_delay(gun_upgrade(i));
+                --_upgrade_count;
+                b.set_colors(UPGRADED_BUTTON_COLOR_FG, UPGRADED_BUTTON_COLOR_BORDER);
+                if (i+1 < _gun_upgrades.size()) {
+                    _gun_upgrades[i+1].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
+                }
+            }
+        }
     }
+
     if (_upgrade_count > 0) {
     }
     if (_upgrade_count > 0) {
@@ -667,6 +670,41 @@ void Game::update_won_state()
     if (_input_manager.key_pressed(SDL_SCANCODE_ESCAPE)) {
         _state = Game_State::MAIN_MENU;
     }
+}
+
+void Game::full_reset_on_dead_state()
+{
+    _level_id = 0;
+    _upgrade_count = 0;
+    const auto [w, h] = get_world_size();
+    _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
+    _gun = Gun{};
+
+    for (auto& u:_ship_speed_upgrades) {
+        u.b.set_colors(DISABLED_UPGRADE_BUTTON_COLOR_FG, DISABLED_UPGRADE_BUTTON_COLOR_BORDER);
+        u.upgraded = false;
+    } _ship_speed_upgrades[0].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
+
+    for (auto& u:_ship_rotation_speed_upgrades) {
+        u.b.set_colors(DISABLED_UPGRADE_BUTTON_COLOR_FG, DISABLED_UPGRADE_BUTTON_COLOR_BORDER);
+        u.upgraded = false;
+    } _ship_rotation_speed_upgrades[0].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
+    for (auto& u:_ship_max_health_upgrades) {
+        u.b.set_colors(DISABLED_UPGRADE_BUTTON_COLOR_FG, DISABLED_UPGRADE_BUTTON_COLOR_BORDER);
+        u.upgraded = false;
+    } _ship_max_health_upgrades[0].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
+    for (auto& u:_gun_upgrades) {
+        u.b.set_colors(DISABLED_UPGRADE_BUTTON_COLOR_FG, DISABLED_UPGRADE_BUTTON_COLOR_BORDER);
+        u.upgraded = false;
+    } _gun_upgrades[0].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
+    for (auto& u:_shotgun_upgrades) {
+        u.b.set_colors(DISABLED_UPGRADE_BUTTON_COLOR_FG, DISABLED_UPGRADE_BUTTON_COLOR_BORDER);
+        u.upgraded = false;
+    } _shotgun_upgrades[0].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
+    for (auto& u:_homing_gun_upgrades) {
+        u.b.set_colors(DISABLED_UPGRADE_BUTTON_COLOR_FG, DISABLED_UPGRADE_BUTTON_COLOR_BORDER);
+        u.upgraded = false;
+    } _homing_gun_upgrades[0].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
 }
 
 // called before each level

@@ -132,7 +132,7 @@ void Ship::upgrade_max_health()
 
 void Ship::upgrade_speed()
 { 
-    _speed += 50.0f;
+    _speed += 35.0f;
     _decceleration_speed = _speed*0.75f; 
 }
 

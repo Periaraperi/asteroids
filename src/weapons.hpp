@@ -12,11 +12,13 @@ public:
 
     [[nodiscard]]
     float delay() const;
+
+    void set_initial_delay(const float delay);
 private:
     float _delay{};
     glm::vec4 _bullet_color{0.5f, 0.6f, 0.7f, 1.0f};
 
-    static constexpr float _initial_delay{0.3f};
+    float _initial_delay{0.4f};
 };
 
 class Shotgun {
