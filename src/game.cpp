@@ -200,8 +200,9 @@ void Game::render(float alpha)
         } break;
         case Game_State::WON:
         {
-            _graphics.draw_text("YOU WON", {w*0.5f - 120.0f, h - 100.0f}, text_color);
-            _graphics.draw_text("Choose Your Upgrade", {w*0.5f - 245.0f, h - 170.0f}, text_color);
+            _graphics.draw_text("YOU WON", {w*0.5f - 120.0f, h - 50.0f}, text_color);
+            _graphics.draw_text("Choose Your Upgrade", {w*0.5f - 245.0f, h - 120.0f}, text_color);
+            _graphics.draw_text("Points "+std::to_string(_upgrade_count), {w*0.5f - 100.0f, h - 170.0f}, text_color, 0.70f);
             auto mouse = peria::get_mapped_mouse(_graphics, _input_manager);
             mouse.y = get_world_size().y - mouse.y;
             
@@ -328,11 +329,11 @@ void Game::update_playing_state(float dt)
 {
     // testing
     {
-        //if (_input_manager.key_pressed(SDL_SCANCODE_K)) {
-        //    _state = Game_State::WON;
-        //    ++_upgrade_count;
-        //    std::cout << int(_upgrade_count) << '\n';
-        //}
+        if (_input_manager.key_pressed(SDL_SCANCODE_X)) {
+            _state = Game_State::WON;
+            ++_upgrade_count;
+            std::cout << int(_upgrade_count) << '\n';
+        }
 
         if (_input_manager.key_pressed(SDL_SCANCODE_K)) {
             _active_weapon = Active_Weapon::SHOTGUN;
@@ -610,7 +611,7 @@ void Game::update_won_state()
         for (std::size_t i{}; i<_ship_speed_upgrades.size(); ++i) {
             auto& b = _ship_speed_upgrades[i].b;
             if (b.is_hovered(mouse.x, mouse.y) && _input_manager.mouse_pressed(Mouse_Button::LEFT) &&
-                ((i > 0 && _ship_speed_upgrades[i-1].upgraded) || i == 0)) {
+                ((i > 0 && _ship_speed_upgrades[i-1].upgraded) || i == 0) && !_ship_speed_upgrades[i].upgraded) {
                 _ship_speed_upgrades[i].upgraded = true;
                 _ship->upgrade_speed();
                 --_upgrade_count;
@@ -626,7 +627,7 @@ void Game::update_won_state()
         for (std::size_t i{}; i<_ship_rotation_speed_upgrades.size(); ++i) {
             auto& b = _ship_rotation_speed_upgrades[i].b;
             if (b.is_hovered(mouse.x, mouse.y) && _input_manager.mouse_pressed(Mouse_Button::LEFT) &&
-                ((i > 0 && _ship_rotation_speed_upgrades[i-1].upgraded) || i == 0)) {
+                ((i > 0 && _ship_rotation_speed_upgrades[i-1].upgraded) || i == 0) && !_ship_rotation_speed_upgrades[i].upgraded) {
                 _ship_rotation_speed_upgrades[i].upgraded = true;
                 _ship->upgrade_rotation_speed();
                 --_upgrade_count;
@@ -642,7 +643,7 @@ void Game::update_won_state()
         for (std::size_t i{}; i<_ship_max_health_upgrades.size(); ++i) {
             auto& b = _ship_max_health_upgrades[i].b;
             if (b.is_hovered(mouse.x, mouse.y) && _input_manager.mouse_pressed(Mouse_Button::LEFT) &&
-                ((i > 0 && _ship_max_health_upgrades[i-1].upgraded) || i == 0)) {
+                ((i > 0 && _ship_max_health_upgrades[i-1].upgraded) || i == 0) && !_ship_max_health_upgrades[i].upgraded) {
                 _ship_max_health_upgrades[i].upgraded = true;
                 _ship->upgrade_max_health();
                 --_upgrade_count;
@@ -666,7 +667,7 @@ void Game::update_won_state()
         for (std::size_t i{}; i<_gun_upgrades.size(); ++i) {
             auto& b = _gun_upgrades[i].b;
             if (b.is_hovered(mouse.x, mouse.y) && _input_manager.mouse_pressed(Mouse_Button::LEFT) &&
-                ((i > 0 && _gun_upgrades[i-1].upgraded) || i == 0)) {
+                ((i > 0 && _gun_upgrades[i-1].upgraded) || i == 0) && !_gun_upgrades[i].upgraded) {
                 _gun_upgrades[i].upgraded = true;
                 _gun.set_initial_delay(gun_upgrade(i));
                 --_upgrade_count;
@@ -682,7 +683,7 @@ void Game::update_won_state()
         for (std::size_t i{}; i<_shotgun_upgrades.size(); ++i) {
             auto& b = _shotgun_upgrades[i].b;
             if (b.is_hovered(mouse.x, mouse.y) && _input_manager.mouse_pressed(Mouse_Button::LEFT) &&
-                ((i > 0 && _shotgun_upgrades[i-1].upgraded) || i == 0)) {
+                ((i > 0 && _shotgun_upgrades[i-1].upgraded) || i == 0) && !_shotgun_upgrades[i].upgraded) {
                 _shotgun_upgrades[i].upgraded = true;
                 _shotgun.upgrade();
                 --_upgrade_count;
