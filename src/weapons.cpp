@@ -55,12 +55,21 @@ void Shotgun::shoot(const glm::vec2& pos, const glm::vec2& dir,
     };
 
     bullets.push_back(Bullet(pos, 5.0f, dir, _bullet_color));
-    bullets.push_back(Bullet(pos + dir*15.0f, 5.0f, dir, _bullet_color));
-    bullets.push_back(Bullet(pos + dir*30.0f, 5.0f, dir, _bullet_color));
     bullets.push_back(Bullet(pos + dir_left*15.0f, 5.0f, dir_left, _bullet_color));
-    bullets.push_back(Bullet(pos + dir_left*30.0f, 5.0f, dir_left, _bullet_color));
     bullets.push_back(Bullet(pos + dir_right*15.0f, 5.0f, dir_right, _bullet_color));
-    bullets.push_back(Bullet(pos + dir_right*30.0f, 5.0f, dir_right, _bullet_color));
+    
+    if (_upgrade_level >= 1) {
+        bullets.push_back(Bullet(pos + dir_right*30.0f, 5.0f, dir_right, _bullet_color));
+        bullets.push_back(Bullet(pos + dir_left*30.0f, 5.0f, dir_left, _bullet_color));
+    }
+    if (_upgrade_level >= 2) {
+        bullets.push_back(Bullet(pos + dir*30.0f, 5.0f, dir, _bullet_color));
+        bullets.push_back(Bullet(pos + dir*15.0f, 5.0f, dir, _bullet_color));
+    }
+    if (_upgrade_level >= 3) {
+        bullets.push_back(Bullet(pos + dir_right*45.0f, 5.0f, dir_right, _bullet_color));
+        bullets.push_back(Bullet(pos + dir_left*45.0f, 5.0f, dir_left, _bullet_color));
+    }
 
     _delay = Shotgun::_initial_delay;
 }
@@ -70,6 +79,9 @@ void Shotgun::reset()
     _delay = 0.0f; 
     _timer = Shotgun::_initial_timer;
 }
+
+void Shotgun::upgrade()
+{ _upgrade_level = std::min(_upgrade_level+1, 3); }
 
 float Shotgun::delay() const
 { return _delay; }
@@ -112,6 +124,9 @@ void Homing_Gun::reset()
     _delay = 0.0f;
     _timer = Homing_Gun::_initial_timer;
 }
+
+void Homing_Gun::do_delay()
+{ _delay = Homing_Gun::_initial_delay; }
 
 /*
 void Homing_Gun::draw_radar(Graphics& g, glm::vec2 pos)

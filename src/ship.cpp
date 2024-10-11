@@ -9,7 +9,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-bool first_move = false;
+bool first_move{false};
 
 [[nodiscard]]
 std::vector<glm::vec2>
@@ -28,7 +28,9 @@ Ship::Ship(glm::vec2 world_pos)
      _transform{world_pos, {25.0f, 20.0f}, 0.0f},
      _velocity{0.0f, 0.0f}, _decceleration_speed{_speed*0.75f},
      _invincible{false}
-{}
+{
+    first_move = false;
+}
 
 void Ship::restart()
 {
@@ -36,6 +38,7 @@ void Ship::restart()
     _transform.angle = 0.0f;
     _transform.pos = _initial_pos;
     _prev_transform = _transform;
+    first_move = false;
 }
 
 void Ship::update(Input_Manager& im, float dt)

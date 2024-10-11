@@ -28,6 +28,8 @@ public:
                std::vector<Bullet>& bullets);
     void reset();
 
+    void upgrade();
+
     [[nodiscard]]
     float delay() const;
 
@@ -36,6 +38,8 @@ public:
 private:
     float _delay{};
     float _timer{10.0f};
+    uint8_t _upgrade_level{0};
+
     glm::vec4 _bullet_color{0.8f, 0.6f, 0.7f, 1.0f};
 
     static constexpr float _initial_delay{1.0f};
@@ -49,6 +53,7 @@ public:
 
     void update(float dt);
     void reset();
+    void do_delay();
 
     void draw_radar(Graphics& g, glm::vec2 pos);
 
@@ -61,6 +66,6 @@ private:
     float _delay{0.0f};
     float _timer{10.0f};
 
-    static constexpr float _initial_delay{0.5f};
+    static constexpr float _initial_delay{1.5f};
     static constexpr float _initial_timer{10.0f};
 };

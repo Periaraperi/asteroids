@@ -326,6 +326,25 @@ void Game::update_main_menu_state()
 
 void Game::update_playing_state(float dt)
 {
+    // testing
+    {
+        //if (_input_manager.key_pressed(SDL_SCANCODE_K)) {
+        //    _state = Game_State::WON;
+        //    ++_upgrade_count;
+        //    std::cout << int(_upgrade_count) << '\n';
+        //}
+
+        if (_input_manager.key_pressed(SDL_SCANCODE_K)) {
+            _active_weapon = Active_Weapon::SHOTGUN;
+            _shotgun.reset();
+        }
+
+        if (_input_manager.key_pressed(SDL_SCANCODE_J)) {
+            _shotgun.upgrade();
+        }
+    }
+
+
     // do weapon update based on currently active weapon
     switch (_active_weapon) {
         case Active_Weapon::GUN:
@@ -406,19 +425,22 @@ void Game::update_playing_state(float dt)
                     }
                     break;
                 case Active_Weapon::HOMING_GUN:
-                    {
-                    _target_index = _homing_gun.search(ship_tip, _asteroids);
-                    _asteroids[_target_index].set_color({1.0f, 0.5f, 1.0f, 1.0f});
-                    }break;
+                    if (_homing_gun.delay() <= 0.0f) {
+                        _target_index = _homing_gun.search(ship_tip, _asteroids);
+                        _asteroids[_target_index].set_color({1.0f, 0.5f, 1.0f, 1.0f});
+                    }
+                    break;
                 default:
                     PERIA_LOG("WTF?");
             }
         }
 
         if (_input_manager.key_released(SDL_SCANCODE_SPACE) &&
-            _active_weapon == Active_Weapon::HOMING_GUN) {
+            _active_weapon == Active_Weapon::HOMING_GUN && 
+            _homing_gun.delay() <= 0.0f && _target_index != -1) {
             _homing_bullets.emplace_back(ship_tip, 7.0f, _target_index, _ship->get_direction_vector(), _ship->get_angle(), glm::vec4{1.0f, 1.0f, 0.0f, 1.0f});
             _target_index = -1;
+            _homing_gun.do_delay();
         }
     }
 
@@ -638,6 +660,7 @@ void Game::update_won_state()
             if (i==0) return 0.35f;
             if (i==1) return 0.30f;
             if (i==2) return 0.25f;
+            return 0.0f;
         };
 
         for (std::size_t i{}; i<_gun_upgrades.size(); ++i) {
@@ -656,6 +679,20 @@ void Game::update_won_state()
     }
 
     if (_upgrade_count > 0) {
+        for (std::size_t i{}; i<_shotgun_upgrades.size(); ++i) {
+            auto& b = _shotgun_upgrades[i].b;
+            if (b.is_hovered(mouse.x, mouse.y) && _input_manager.mouse_pressed(Mouse_Button::LEFT) &&
+                ((i > 0 && _shotgun_upgrades[i-1].upgraded) || i == 0)) {
+                _shotgun_upgrades[i].upgraded = true;
+                _shotgun.upgrade();
+                --_upgrade_count;
+                b.set_colors(UPGRADED_BUTTON_COLOR_FG, UPGRADED_BUTTON_COLOR_BORDER);
+                if (i+1 < _shotgun_upgrades.size()) {
+                    _shotgun_upgrades[i+1].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
+                }
+            }
+        }
+
     }
     if (_upgrade_count > 0) {
     }
@@ -679,6 +716,7 @@ void Game::full_reset_on_dead_state()
     const auto [w, h] = get_world_size();
     _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
     _gun = Gun{};
+    _shotgun = Shotgun{};
 
     for (auto& u:_ship_speed_upgrades) {
         u.b.set_colors(DISABLED_UPGRADE_BUTTON_COLOR_FG, DISABLED_UPGRADE_BUTTON_COLOR_BORDER);
