@@ -50,9 +50,10 @@ private:
     uint8_t _max_hp{3};
     uint8_t _hp{3};
 
+    float _accum{};
     float _iframe_duration{2.0f};
     float _speed{350.0f};
-    float _rot_speed{150.0f};
+    float _rot_speed{180.0f};
     float _decceleration_speed;
     bool _invincible;
 };

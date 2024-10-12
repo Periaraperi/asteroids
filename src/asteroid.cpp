@@ -10,8 +10,8 @@
 
 std::array<float, 3> get_speed {
     200.0f,
-    150.0f,
-    100.0f
+    170.0f,
+    120.0f
 };
 
 // made in helper editor

@@ -30,6 +30,12 @@ public:
             SHOTGUN,
             HOMING_GUN,
         };
+
+        Collectible() = default;
+        Collectible(Collectible_Type type_, const glm::vec2& pos_, const glm::vec2& size_)
+            :type{type_}, pos{pos_}, size{size_}
+        {}
+
         Collectible_Type type;
         glm::vec2 pos;
         glm::vec2 size;
@@ -77,6 +83,8 @@ private:
     struct Upgrade {
         Upgrade(Button&& button) :b{std::move(button)} {}
         Button b;
+        std::string on_hover_text;
+        uint8_t points_needed{1};
         bool upgraded{false};
     };
 
@@ -113,6 +121,7 @@ private:
     std::vector<Upgrade> _ship_max_health_upgrades;
 
     uint8_t _upgrade_count{0};
+    std::array<bool, 3> _unlocked_weapons;
 public:
     // disable copy move ops
     Game(const Game&) = delete;

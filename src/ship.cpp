@@ -38,6 +38,8 @@ void Ship::restart()
     _transform.angle = 0.0f;
     _transform.pos = _initial_pos;
     _prev_transform = _transform;
+    _invincible = false;
+    _accum = 0.0f;
     first_move = false;
 }
 
@@ -105,15 +107,13 @@ void Ship::update(Input_Manager& im, float dt)
 
 void Ship::iframes(float step)
 {
-    static float accum = 0.0f;
-
     //PERIA_LOG("DT: ", step);
-    if (accum <= _iframe_duration) {
+    if (_accum <= _iframe_duration) {
         //PERIA_LOG("Accum: ", accum);
-        accum += step;
+        _accum += step;
     }
     else {
-        accum = 0.0f;
+        _accum = 0.0f;
         _invincible = false;
     }
 }
@@ -135,7 +135,7 @@ void Ship::upgrade_max_health()
 
 void Ship::upgrade_speed()
 { 
-    _speed += 35.0f;
+    _speed += 20.0f;
     _decceleration_speed = _speed*0.75f; 
 }
 

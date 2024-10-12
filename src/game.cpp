@@ -25,6 +25,9 @@ constexpr glm::vec4 NOT_UPGRADED_BUTTON_COLOR_BORDER{0.863f, 0.078f, 0.235f, 1.0
 constexpr glm::vec4 DISABLED_UPGRADE_BUTTON_COLOR_FG{0.753f, 0.753f, 0.753f, 1.0f};
 constexpr glm::vec4 DISABLED_UPGRADE_BUTTON_COLOR_BORDER{0.502f, 0.502f, 0.502f, 1.0f};
 
+constexpr glm::vec4 WHITE{1.0f, 1.0f, 1.0f, 1.0f};
+constexpr glm::vec4 BLACK{0.0f, 0.0f, 0.0f, 1.0f};
+
 auto dt_copy = 0.0f;
 Game::Game(Graphics& graphics, Input_Manager& input_manager)
     :_running{true}, _state{Game_State::MAIN_MENU},
@@ -41,7 +44,7 @@ Game::Game(Graphics& graphics, Input_Manager& input_manager)
     _level_init_calls.push_back(std::bind(&Game::init_level5, this));
 
     const auto [w, h] = get_world_size();
-    const auto size_x = 100.0f;
+    const auto size_x = 200.0f;
     const auto size_y = 50.0f;
 
     // init upgrade buttons
@@ -52,25 +55,89 @@ Game::Game(Graphics& graphics, Input_Manager& input_manager)
         for (int i{}; i<3; ++i) {
             _ship_speed_upgrades.emplace_back(Button{{start_x + (offset+size_x)*i, start_y - (offset+size_y)*0, size_x, size_y}, NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER, 5.0f});
         }
+        {
+            const auto p0{_ship_speed_upgrades[0].b.button_pos()};
+            const auto p1{_ship_speed_upgrades[1].b.button_pos()};
+            const auto p2{_ship_speed_upgrades[2].b.button_pos()};
+            _ship_speed_upgrades[0].b.set_text("+1 / 1p", {p0.x+30.0f, p0.y-38.0f}, WHITE, 0.75f);
+            _ship_speed_upgrades[1].b.set_text("+2 / 1p", {p1.x+30.0f, p1.y-38.0f}, WHITE, 0.75f);
+            _ship_speed_upgrades[2].b.set_text("+3 / 2p", {p2.x+30.0f, p2.y-38.0f}, WHITE, 0.75f);
+
+            _ship_speed_upgrades[2].points_needed = 2;
+        }
 
         for (int i{}; i<3; ++i) {
             _ship_rotation_speed_upgrades.emplace_back(Button{{start_x + (offset+size_x)*i, start_y - (offset+size_y)*1, size_x, size_y}, NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER, 5.0f});
+        }
+        {
+            const auto p0{_ship_rotation_speed_upgrades[0].b.button_pos()};
+            const auto p1{_ship_rotation_speed_upgrades[1].b.button_pos()};
+            const auto p2{_ship_rotation_speed_upgrades[2].b.button_pos()};
+            _ship_rotation_speed_upgrades[0].b.set_text("+1 / 1p", {p0.x+30.0f, p0.y-38.0f}, WHITE, 0.75f);
+            _ship_rotation_speed_upgrades[1].b.set_text("+2 / 2p", {p1.x+30.0f, p1.y-38.0f}, WHITE, 0.75f);
+            _ship_rotation_speed_upgrades[2].b.set_text("+3 / 3p", {p2.x+30.0f, p2.y-38.0f}, WHITE, 0.75f);
+
+            _ship_rotation_speed_upgrades[1].points_needed = 2;
+            _ship_rotation_speed_upgrades[2].points_needed = 3;
         }
 
         for (int i{}; i<3; ++i) {
             _ship_max_health_upgrades.emplace_back(Button{{start_x + (offset+size_x)*i, start_y - (offset+size_y)*2, size_x, size_y}, NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER, 5.0f});
         }
+        {
+            const auto p0{_ship_max_health_upgrades[0].b.button_pos()};
+            const auto p1{_ship_max_health_upgrades[1].b.button_pos()};
+            const auto p2{_ship_max_health_upgrades[2].b.button_pos()};
+            _ship_max_health_upgrades[0].b.set_text("+1 / 1p", {p0.x+30.0f, p0.y-38.0f}, WHITE, 0.75f);
+            _ship_max_health_upgrades[1].b.set_text("+2 / 2p", {p1.x+30.0f, p1.y-38.0f}, WHITE, 0.75f);
+            _ship_max_health_upgrades[2].b.set_text("+3 / 3p", {p2.x+30.0f, p2.y-38.0f}, WHITE, 0.75f);
+
+            _ship_max_health_upgrades[1].points_needed = 2;
+            _ship_max_health_upgrades[2].points_needed = 3;
+        }
 
         for (int i{}; i<3; ++i) {
             _gun_upgrades.emplace_back(Button{{start_x + (offset+size_x)*i, start_y - (offset+size_y)*3, size_x, size_y}, NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER, 5.0f});
         }
-
-        for (int i{}; i<3; ++i) {
-            _shotgun_upgrades.emplace_back(Button{{start_x + (offset+size_x)*i, start_y - (offset+size_y)*4, size_x, size_y}, NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER, 5.0f});
+        {
+            const auto p0{_gun_upgrades[0].b.button_pos()};
+            const auto p1{_gun_upgrades[1].b.button_pos()};
+            const auto p2{_gun_upgrades[2].b.button_pos()};
+            _gun_upgrades[0].b.set_text("+1 / 1p", {p0.x+30.0f, p0.y-38.0f}, WHITE, 0.75f);
+            _gun_upgrades[1].b.set_text("+2 / 1p", {p1.x+30.0f, p1.y-38.0f}, WHITE, 0.75f);
+            _gun_upgrades[2].b.set_text("+3 / 1p", {p2.x+30.0f, p2.y-38.0f}, WHITE, 0.75f);
         }
 
-        for (int i{}; i<3; ++i) {
-            _homing_gun_upgrades.emplace_back(Button{{start_x + (offset+size_x)*i, start_y - (offset+size_y)*5, size_x, size_y}, NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER, 5.0f});
+        const auto start_x2 = start_x - offset - size_x;
+        for (int i{}; i<4; ++i) {
+            _shotgun_upgrades.emplace_back(Button{{start_x2 + (offset+size_x)*i, start_y - (offset+size_y)*4, size_x, size_y}, NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER, 5.0f});
+        }
+        {
+            const auto p0{_shotgun_upgrades[0].b.button_pos()};
+            const auto p1{_shotgun_upgrades[1].b.button_pos()};
+            const auto p2{_shotgun_upgrades[2].b.button_pos()};
+            const auto p3{_shotgun_upgrades[3].b.button_pos()};
+            _shotgun_upgrades[0].b.set_text("unlock / 1p", {p0.x, p0.y-38.0f}, WHITE, 0.70f);
+            _shotgun_upgrades[1].b.set_text("+2 / 1p", {p1.x+30.0f, p1.y-38.0f}, WHITE, 0.75f);
+            _shotgun_upgrades[2].b.set_text("+3 / 2p", {p2.x+30.0f, p2.y-38.0f}, WHITE, 0.75f);
+            _shotgun_upgrades[3].b.set_text("+3 / 3p", {p3.x+30.0f, p3.y-38.0f}, WHITE, 0.75f);
+
+            _shotgun_upgrades[2].points_needed = 2;
+            _shotgun_upgrades[3].points_needed = 3;
+        }
+
+        for (int i{}; i<4; ++i) {
+            _homing_gun_upgrades.emplace_back(Button{{start_x2 + (offset+size_x)*i, start_y - (offset+size_y)*5, size_x, size_y}, NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER, 5.0f});
+        }
+        {
+            const auto p0{_homing_gun_upgrades[0].b.button_pos()};
+            const auto p1{_homing_gun_upgrades[1].b.button_pos()};
+            const auto p2{_homing_gun_upgrades[2].b.button_pos()};
+            const auto p3{_homing_gun_upgrades[3].b.button_pos()};
+            _homing_gun_upgrades[0].b.set_text("unlock / 1p", {p0.x, p0.y-38.0f}, WHITE, 0.70f);
+            _homing_gun_upgrades[1].b.set_text("+2 / 1p", {p1.x+30.0f, p1.y-38.0f}, WHITE, 0.75f);
+            _homing_gun_upgrades[2].b.set_text("+3 / 1p", {p2.x+30.0f, p2.y-38.0f}, WHITE, 0.75f);
+            _homing_gun_upgrades[3].b.set_text("+3 / 1p", {p3.x+30.0f, p3.y-38.0f}, WHITE, 0.75f);
         }
     }
 
@@ -380,36 +447,39 @@ void Game::update_playing_state(float dt)
     peria::Polygon ship_poly{_ship->get_points_in_world()};
     const auto& ship_tip = ship_poly.points()[2]; // tip of ship in world space
     
-    for (auto& c:_gun_collectibles) {
-        peria::Polygon collectibe_poly{{
-            {c.pos.x, c.pos.y},
-            {c.pos.x+c.size.x, c.pos.y},
-            {c.pos.x+c.size.x, c.pos.y-c.size.y},
-            {c.pos.x, c.pos.y-c.size.y}
-        }};
+    // collectible picking logic
+    {
+        for (auto& c:_gun_collectibles) {
+            peria::Polygon collectibe_poly{{
+                {c.pos.x, c.pos.y},
+                {c.pos.x+c.size.x, c.pos.y},
+                {c.pos.x+c.size.x, c.pos.y-c.size.y},
+                {c.pos.x, c.pos.y-c.size.y}
+            }};
 
-        // take shotgun
-        if (concave_sat(ship_poly, collectibe_poly)) {
-            switch (c.type) {
-                case Collectible::Collectible_Type::SHOTGUN:
-                    _active_weapon = Active_Weapon::SHOTGUN;
-                    _shotgun.reset();
-                    break;
-                case Collectible::Collectible_Type::HOMING_GUN:
-                    _active_weapon = Active_Weapon::HOMING_GUN;
-                    _homing_gun.reset();
-                    break;
-                default:
-                    break;
+            // take shotgun
+            if (concave_sat(ship_poly, collectibe_poly)) {
+                switch (c.type) {
+                    case Collectible::Collectible_Type::SHOTGUN:
+                        _active_weapon = Active_Weapon::SHOTGUN;
+                        _shotgun.reset();
+                        break;
+                    case Collectible::Collectible_Type::HOMING_GUN:
+                        _active_weapon = Active_Weapon::HOMING_GUN;
+                        _homing_gun.reset();
+                        break;
+                    default:
+                        break;
+                }
+                c.taken = true;
             }
-            c.taken = true;
         }
-    }
 
-    // remove collected collectibles
-    _gun_collectibles.erase(std::remove_if(_gun_collectibles.begin(), _gun_collectibles.end(), 
-                   [](const Collectible& c) { return c.taken; }),
-                   _gun_collectibles.end());
+        // remove collected collectibles
+        _gun_collectibles.erase(std::remove_if(_gun_collectibles.begin(), _gun_collectibles.end(), 
+                       [](const Collectible& c) { return c.taken; }),
+                       _gun_collectibles.end());
+    }
 
     // logic for bullets shooting based on weapon
     {
@@ -465,11 +535,11 @@ void Game::update_playing_state(float dt)
 
     // helper lambda for collectibles
     auto spawn_collectible = [this](const Asteroid& a) {
-        if (peria::get_int(1, 8) == 8) {
-            _gun_collectibles.push_back({Collectible::Collectible_Type::SHOTGUN, a.get_world_pos(), {10.0f, 10.0f}});
+        if (peria::get_int(1, 8) == 8 && _unlocked_weapons[static_cast<int>(Active_Weapon::SHOTGUN)]) {
+            _gun_collectibles.emplace_back(Collectible::Collectible_Type::SHOTGUN, a.get_world_pos(), glm::vec2{10.0f, 10.0f});
         }
-        else if (peria::get_int(1, 8) == 8) {
-            _gun_collectibles.push_back({Collectible::Collectible_Type::HOMING_GUN, a.get_world_pos(), {10.0f, 10.0f}});
+        else if (peria::get_int(1, 8) == 8 && _unlocked_weapons[static_cast<int>(Active_Weapon::HOMING_GUN)]) {
+            _gun_collectibles.emplace_back(Collectible::Collectible_Type::HOMING_GUN, a.get_world_pos(), glm::vec2{10.0f, 10.0f});
         }
     };
 
@@ -584,7 +654,6 @@ void Game::update_playing_state(float dt)
 
     if (_asteroids.empty()) {
         ++_upgrade_count;
-        std::cerr << "UPGRADE COUNT: " << static_cast<int>(_upgrade_count) << '\n';
         _state = Game_State::WON;
     }
 }
@@ -605,16 +674,18 @@ void Game::update_dead_state()
 
 void Game::update_won_state()
 {
-    // choose upgrade here
+    // choose upgrades here
     auto mouse = peria::get_mapped_mouse(_graphics, _input_manager); mouse.y = get_world_size().y - mouse.y;
+
     if (_upgrade_count > 0) {
         for (std::size_t i{}; i<_ship_speed_upgrades.size(); ++i) {
             auto& b = _ship_speed_upgrades[i].b;
             if (b.is_hovered(mouse.x, mouse.y) && _input_manager.mouse_pressed(Mouse_Button::LEFT) &&
-                ((i > 0 && _ship_speed_upgrades[i-1].upgraded) || i == 0) && !_ship_speed_upgrades[i].upgraded) {
+                ((i > 0 && _ship_speed_upgrades[i-1].upgraded) || i == 0) && !_ship_speed_upgrades[i].upgraded &&
+                _ship_speed_upgrades[i].points_needed <= _upgrade_count) {
                 _ship_speed_upgrades[i].upgraded = true;
                 _ship->upgrade_speed();
-                --_upgrade_count;
+                _upgrade_count -= _ship_speed_upgrades[i].points_needed;
                 b.set_colors(UPGRADED_BUTTON_COLOR_FG, UPGRADED_BUTTON_COLOR_BORDER);
                 if (i+1 < _ship_speed_upgrades.size()) {
                     _ship_speed_upgrades[i+1].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
@@ -627,10 +698,11 @@ void Game::update_won_state()
         for (std::size_t i{}; i<_ship_rotation_speed_upgrades.size(); ++i) {
             auto& b = _ship_rotation_speed_upgrades[i].b;
             if (b.is_hovered(mouse.x, mouse.y) && _input_manager.mouse_pressed(Mouse_Button::LEFT) &&
-                ((i > 0 && _ship_rotation_speed_upgrades[i-1].upgraded) || i == 0) && !_ship_rotation_speed_upgrades[i].upgraded) {
+                ((i > 0 && _ship_rotation_speed_upgrades[i-1].upgraded) || i == 0) && !_ship_rotation_speed_upgrades[i].upgraded &&
+                _ship_rotation_speed_upgrades[i].points_needed <= _upgrade_count) {
                 _ship_rotation_speed_upgrades[i].upgraded = true;
                 _ship->upgrade_rotation_speed();
-                --_upgrade_count;
+                _upgrade_count -= _ship_rotation_speed_upgrades[i].points_needed;
                 b.set_colors(UPGRADED_BUTTON_COLOR_FG, UPGRADED_BUTTON_COLOR_BORDER);
                 if (i+1 < _ship_rotation_speed_upgrades.size()) {
                     _ship_rotation_speed_upgrades[i+1].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
@@ -643,10 +715,11 @@ void Game::update_won_state()
         for (std::size_t i{}; i<_ship_max_health_upgrades.size(); ++i) {
             auto& b = _ship_max_health_upgrades[i].b;
             if (b.is_hovered(mouse.x, mouse.y) && _input_manager.mouse_pressed(Mouse_Button::LEFT) &&
-                ((i > 0 && _ship_max_health_upgrades[i-1].upgraded) || i == 0) && !_ship_max_health_upgrades[i].upgraded) {
+                ((i > 0 && _ship_max_health_upgrades[i-1].upgraded) || i == 0) && !_ship_max_health_upgrades[i].upgraded &&
+                _ship_max_health_upgrades[i].points_needed <= _upgrade_count) {
                 _ship_max_health_upgrades[i].upgraded = true;
                 _ship->upgrade_max_health();
-                --_upgrade_count;
+                _upgrade_count -= _ship_max_health_upgrades[i].points_needed;
                 b.set_colors(UPGRADED_BUTTON_COLOR_FG, UPGRADED_BUTTON_COLOR_BORDER);
                 if (i+1 < _ship_max_health_upgrades.size()) {
                     _ship_max_health_upgrades[i+1].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
@@ -655,7 +728,6 @@ void Game::update_won_state()
         }
     }
 
-    // TODO: gun upgrades 
     if (_upgrade_count > 0) {
         auto gun_upgrade = [](const auto i) {
             if (i==0) return 0.35f;
@@ -667,10 +739,11 @@ void Game::update_won_state()
         for (std::size_t i{}; i<_gun_upgrades.size(); ++i) {
             auto& b = _gun_upgrades[i].b;
             if (b.is_hovered(mouse.x, mouse.y) && _input_manager.mouse_pressed(Mouse_Button::LEFT) &&
-                ((i > 0 && _gun_upgrades[i-1].upgraded) || i == 0) && !_gun_upgrades[i].upgraded) {
+                ((i > 0 && _gun_upgrades[i-1].upgraded) || i == 0) && !_gun_upgrades[i].upgraded &&
+                _gun_upgrades[i].points_needed <= _upgrade_count) {
                 _gun_upgrades[i].upgraded = true;
                 _gun.set_initial_delay(gun_upgrade(i));
-                --_upgrade_count;
+                _upgrade_count -= _gun_upgrades[i].points_needed;
                 b.set_colors(UPGRADED_BUTTON_COLOR_FG, UPGRADED_BUTTON_COLOR_BORDER);
                 if (i+1 < _gun_upgrades.size()) {
                     _gun_upgrades[i+1].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
@@ -683,10 +756,18 @@ void Game::update_won_state()
         for (std::size_t i{}; i<_shotgun_upgrades.size(); ++i) {
             auto& b = _shotgun_upgrades[i].b;
             if (b.is_hovered(mouse.x, mouse.y) && _input_manager.mouse_pressed(Mouse_Button::LEFT) &&
-                ((i > 0 && _shotgun_upgrades[i-1].upgraded) || i == 0) && !_shotgun_upgrades[i].upgraded) {
+                ((i > 0 && _shotgun_upgrades[i-1].upgraded) || i == 0) && !_shotgun_upgrades[i].upgraded &&
+                _shotgun_upgrades[i].points_needed <= _upgrade_count) {
                 _shotgun_upgrades[i].upgraded = true;
-                _shotgun.upgrade();
-                --_upgrade_count;
+
+                if (i==0) { // unlock
+                    _unlocked_weapons[static_cast<int>(Active_Weapon::SHOTGUN)] = true;
+                }
+                else {
+                    _shotgun.upgrade();
+                }
+
+                _upgrade_count -= _shotgun_upgrades[i].points_needed;
                 b.set_colors(UPGRADED_BUTTON_COLOR_FG, UPGRADED_BUTTON_COLOR_BORDER);
                 if (i+1 < _shotgun_upgrades.size()) {
                     _shotgun_upgrades[i+1].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
@@ -695,6 +776,8 @@ void Game::update_won_state()
         }
 
     }
+
+    // do homing upgrades here
     if (_upgrade_count > 0) {
     }
 
@@ -710,6 +793,7 @@ void Game::update_won_state()
     }
 }
 
+// also called in constructor of game just to reset everything
 void Game::full_reset_on_dead_state()
 {
     _level_id = 0;
@@ -718,6 +802,10 @@ void Game::full_reset_on_dead_state()
     _ship = std::make_unique<Ship>(glm::vec2{w*0.5f, h*0.5f});
     _gun = Gun{};
     _shotgun = Shotgun{};
+    _homing_gun = Homing_Gun{};
+    for (auto& unlocked:_unlocked_weapons) {
+        unlocked = false;
+    }
 
     for (auto& u:_ship_speed_upgrades) {
         u.b.set_colors(DISABLED_UPGRADE_BUTTON_COLOR_FG, DISABLED_UPGRADE_BUTTON_COLOR_BORDER);
