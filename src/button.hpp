@@ -6,6 +6,7 @@
 
 class Graphics;
 
+// also used as textbox
 class Button {
 public:
     Button() = default;

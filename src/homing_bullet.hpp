@@ -21,6 +21,9 @@ public:
     void set_target_index(int target_index);
     void set_target_pos(glm::vec2 target_pos);
 
+    static void set_damage(uint8_t dmg);
+    static uint8_t get_damage();
+
     [[nodiscard]]
     int get_target_index() const;
 
@@ -45,6 +48,8 @@ private:
 
     int _target_index;
     glm::vec2 _target_pos;
+
+    static uint8_t _damage;
 
     bool _dead;
     float _timer{0.0f};

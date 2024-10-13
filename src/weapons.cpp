@@ -126,25 +126,10 @@ void Homing_Gun::reset()
 }
 
 void Homing_Gun::do_delay()
-{ _delay = Homing_Gun::_initial_delay; }
+{ _delay = _initial_delay; }
 
-/*
-void Homing_Gun::draw_radar(Graphics& g, glm::vec2 pos)
-{
-    if (_search_anim_delay <= 0.0f) {
-        _search_anim_delay = 1.0f;
-        return;
-    }
-    g.draw_circle(pos, 650.0f, glm::vec4{1.0f, 0.0f, 0.0f, 0.2f});
-}
-
-void Homing_Gun::set_searching(bool searching)
-{ _is_searching = searching; }
-
-[[nodiscard]]
-bool Homing_Gun::is_searching() const
-{ return _is_searching; }
-*/
+void Homing_Gun::set_delay(float d)
+{ _initial_delay = d; }
 
 float Homing_Gun::delay() const
 { return _delay; }

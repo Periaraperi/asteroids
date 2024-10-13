@@ -171,7 +171,6 @@ Graphics::Graphics(const Window_Settings& settings)
             std::exit(EXIT_FAILURE);
         }
 
-        //TODO: dynamically calculate optimal powers of 2
         // hardcode for now
         _text_atlas_size = {512, 512};
         _text_atlas = std::make_unique<Texture>(_text_atlas_size.x, _text_atlas_size.y, GL_RED, GL_RED);
@@ -423,8 +422,6 @@ void Graphics::wireframe(bool wireframe)
 
 // ======================================================================= Drawing functions =============================================================
 
-// TODO: Need to optimize line rendering and make it better
-// will do for now, since I use this for debugging stuff
 void Graphics::draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color)
 {
     uint32_t vao;

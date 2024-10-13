@@ -81,7 +81,9 @@ private:
     };
 
     struct Upgrade {
-        Upgrade(Button&& button) :b{std::move(button)} {}
+        Upgrade(Button&& button) 
+            :b{std::move(button)} 
+        {}
         Button b;
         std::string on_hover_text;
         uint8_t points_needed{1};

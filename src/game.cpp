@@ -26,11 +26,9 @@ constexpr glm::vec4 DISABLED_UPGRADE_BUTTON_COLOR_FG{0.753f, 0.753f, 0.753f, 1.0
 constexpr glm::vec4 DISABLED_UPGRADE_BUTTON_COLOR_BORDER{0.502f, 0.502f, 0.502f, 1.0f};
 
 constexpr glm::vec4 WHITE{1.0f, 1.0f, 1.0f, 1.0f};
-constexpr glm::vec4 BLACK{0.0f, 0.0f, 0.0f, 1.0f};
 
-auto dt_copy = 0.0f;
 Game::Game(Graphics& graphics, Input_Manager& input_manager)
-    :_running{true}, _state{Game_State::MAIN_MENU},
+    :_running{true}, _state{Game_State::DEAD},
      _graphics{graphics}, _input_manager{input_manager}, 
      _active_weapon{Active_Weapon::GUN},
      _level_id{0}
@@ -104,8 +102,11 @@ Game::Game(Graphics& graphics, Input_Manager& input_manager)
             const auto p1{_gun_upgrades[1].b.button_pos()};
             const auto p2{_gun_upgrades[2].b.button_pos()};
             _gun_upgrades[0].b.set_text("+1 / 1p", {p0.x+30.0f, p0.y-38.0f}, WHITE, 0.75f);
-            _gun_upgrades[1].b.set_text("+2 / 1p", {p1.x+30.0f, p1.y-38.0f}, WHITE, 0.75f);
-            _gun_upgrades[2].b.set_text("+3 / 1p", {p2.x+30.0f, p2.y-38.0f}, WHITE, 0.75f);
+            _gun_upgrades[1].b.set_text("+2 / 2p", {p1.x+30.0f, p1.y-38.0f}, WHITE, 0.75f);
+            _gun_upgrades[2].b.set_text("+3 / 3p", {p2.x+30.0f, p2.y-38.0f}, WHITE, 0.75f);
+
+            _gun_upgrades[1].points_needed = 2;
+            _gun_upgrades[2].points_needed = 3;
         }
 
         const auto start_x2 = start_x - offset - size_x;
@@ -118,8 +119,8 @@ Game::Game(Graphics& graphics, Input_Manager& input_manager)
             const auto p2{_shotgun_upgrades[2].b.button_pos()};
             const auto p3{_shotgun_upgrades[3].b.button_pos()};
             _shotgun_upgrades[0].b.set_text("unlock / 1p", {p0.x, p0.y-38.0f}, WHITE, 0.70f);
-            _shotgun_upgrades[1].b.set_text("+2 / 1p", {p1.x+30.0f, p1.y-38.0f}, WHITE, 0.75f);
-            _shotgun_upgrades[2].b.set_text("+3 / 2p", {p2.x+30.0f, p2.y-38.0f}, WHITE, 0.75f);
+            _shotgun_upgrades[1].b.set_text("+1 / 1p", {p1.x+30.0f, p1.y-38.0f}, WHITE, 0.75f);
+            _shotgun_upgrades[2].b.set_text("+2 / 2p", {p2.x+30.0f, p2.y-38.0f}, WHITE, 0.75f);
             _shotgun_upgrades[3].b.set_text("+3 / 3p", {p3.x+30.0f, p3.y-38.0f}, WHITE, 0.75f);
 
             _shotgun_upgrades[2].points_needed = 2;
@@ -135,9 +136,12 @@ Game::Game(Graphics& graphics, Input_Manager& input_manager)
             const auto p2{_homing_gun_upgrades[2].b.button_pos()};
             const auto p3{_homing_gun_upgrades[3].b.button_pos()};
             _homing_gun_upgrades[0].b.set_text("unlock / 1p", {p0.x, p0.y-38.0f}, WHITE, 0.70f);
-            _homing_gun_upgrades[1].b.set_text("+2 / 1p", {p1.x+30.0f, p1.y-38.0f}, WHITE, 0.75f);
-            _homing_gun_upgrades[2].b.set_text("+3 / 1p", {p2.x+30.0f, p2.y-38.0f}, WHITE, 0.75f);
-            _homing_gun_upgrades[3].b.set_text("+3 / 1p", {p3.x+30.0f, p3.y-38.0f}, WHITE, 0.75f);
+            _homing_gun_upgrades[1].b.set_text("+1 / 1p", {p1.x+30.0f, p1.y-38.0f}, WHITE, 0.75f);
+            _homing_gun_upgrades[2].b.set_text("+2 / 2p", {p2.x+30.0f, p2.y-38.0f}, WHITE, 0.75f);
+            _homing_gun_upgrades[3].b.set_text("+3 / 3p", {p3.x+30.0f, p3.y-38.0f}, WHITE, 0.75f);
+
+            _homing_gun_upgrades[2].points_needed = 2;
+            _homing_gun_upgrades[3].points_needed = 3;
         }
     }
 
@@ -147,11 +151,7 @@ Game::Game(Graphics& graphics, Input_Manager& input_manager)
 }
 
 Game::~Game()
-{
-    PERIA_LOG("Game dtor()");
-}
-
-std::string info = "";
+{ PERIA_LOG("Game dtor()"); }
 
 void Game::run()
 {
@@ -164,7 +164,6 @@ void Game::run()
     while (_running) {
         uint32_t now = SDL_GetTicks();
         float frame_time = (now - prev) / 1000.0f; // delta time in seconds
-        dt_copy = frame_time;
         prev = now;
 
         _input_manager.update_mouse();
@@ -185,7 +184,6 @@ void Game::run()
 
         // fixed loop here
         while (accumulator >= step) {
-            info = "Dt: " + std::to_string(frame_time) + " Accum: " + std::to_string(accumulator);
             if (_input_manager.key_pressed(SDL_SCANCODE_F)) {
                 _graphics.toggle_fullscreen();
             }
@@ -221,7 +219,8 @@ void Game::render(float alpha)
 
     switch(_state) {
         case Game_State::MAIN_MENU:
-            _graphics.draw_text("Asteroids", {w*0.5f - 120.0f, h*0.5f}, text_color);
+            _graphics.draw_text("Asteroids", {w*0.5f - 120.0f, h - 350.0f}, text_color);
+            _graphics.draw_text("Press ENTER To Play", {w*0.5f - 220.0f, h*0.5f}, text_color);
             break;
         case Game_State::PLAYING:
         {
@@ -249,11 +248,11 @@ void Game::render(float alpha)
             { // draw ship hp points
                 float radius = 15.0f;
                 for (auto hp=_ship->hp(); hp>0; --hp) {
-                    _graphics.draw_circle({w-hp*32.0f, h-30.0f}, radius, {0.863f, 0.078f, 0.235f, 1.0f});
+                    _graphics.draw_circle({w-hp*32.0f, h-20.0f}, radius, {0.863f, 0.078f, 0.235f, 1.0f});
                 }
             }
 
-            _graphics.draw_text("Asteroids Left: " + std::to_string(_asteroids.size()), {0.0f, h-30}, text_color, 0.7f);
+            _graphics.draw_text("Asteroids Left: " + std::to_string(_asteroids.size()), {0.0f, h-25.0f}, text_color, 0.5f);
             if (_active_weapon == Active_Weapon::SHOTGUN) {
                 _graphics.draw_text("Shotgun: " + std::to_string(static_cast<int>(_shotgun.timer())), {600.0f, h-30}, text_color, 0.7f);
             }
@@ -263,7 +262,9 @@ void Game::render(float alpha)
         } break;
         case Game_State::DEAD:
         {
-            _graphics.draw_text("YOU LOST", {w*0.5f - 120.0f, h*0.5f}, text_color);
+            _graphics.draw_text("YOU LOST", {w*0.5f - 120.0f, h - 200.0f}, text_color);
+            _graphics.draw_text("Press ENTER To Play Again", {w*0.5f - 300.0f, h - 300.0f}, text_color);
+            _graphics.draw_text("Press ESC To Quit", {w*0.5f - 210.0f, h - 400.0f}, text_color);
         } break;
         case Game_State::WON:
         {
@@ -275,7 +276,7 @@ void Game::render(float alpha)
             
             // draw upgrade buttons here
             {
-                const auto text_start_x = w*0.5f - 500.0f;
+                const auto text_start_x = w*0.5f - 700.0f;
                 const auto text_start_y = h*0.5f + 170.0f;
                 const auto offset = 85.0f;
                 _graphics.draw_text("ship speed", {text_start_x, text_start_y - offset*0}, text_color);
@@ -298,17 +299,18 @@ void Game::render(float alpha)
                     u.b.draw(_graphics);
                 }
 
-                _graphics.draw_text("shotgun", {text_start_x, text_start_y - offset*4}, text_color);
+                _graphics.draw_text("shotgun", {text_start_x, text_start_y - offset*4 + 10.0f}, text_color);
                 for (const auto& u:_shotgun_upgrades) {
                     u.b.draw(_graphics);
                 }
 
-                _graphics.draw_text("homing gun", {text_start_x, text_start_y - offset*5}, text_color);
+                _graphics.draw_text("homing gun", {text_start_x, text_start_y - offset*5 + 10.0f}, text_color);
                 for (const auto& u:_homing_gun_upgrades) {
                     u.b.draw(_graphics);
                 }
             }
 
+            _graphics.draw_text("Press Enter To Continue", {w*0.5f - 300.0f, 50.0f}, text_color);
             _graphics.draw_circle(mouse, 3.0f, {1.0f, 1.0f, 1.0f, 1.0f});
         } break;
         case Game_State::DEBUG_HELPER:
@@ -317,26 +319,6 @@ void Game::render(float alpha)
         #endif
             break;
     }
-
-#ifdef PERIA_DEBUG
-    _graphics.draw_text("Dt: "+std::to_string(dt_copy), {100,150}, text_color, 0.6f);
-    if (_graphics.is_fullscreen()) {
-        _graphics.draw_text("Fullscreen: True", {100,100}, text_color, 0.6f);
-    }
-    else {
-        _graphics.draw_text("Fullscreen: False", {100,100}, text_color, 0.6f);
-    }
-    if (_graphics.get_vsync()==1) {
-        _graphics.draw_text("Vsync: On", {100,50}, text_color, 0.6f);
-    }
-    else if (_graphics.get_vsync()==0) {
-        _graphics.draw_text("Vsync: Off", {100,50}, text_color, 0.6f);
-    }
-    else if (_graphics.get_vsync()==-1) {
-        _graphics.draw_text("Vsync: 3rd option", {100,50}, text_color, 0.6f);
-    }
-    _graphics.draw_text(info, {100,20}, text_color, 0.4f);
-#endif
 
     _graphics.flush(); // actually draws stuff to separate fbo color attachment
 
@@ -399,12 +381,15 @@ void Game::update_playing_state(float dt)
         if (_input_manager.key_pressed(SDL_SCANCODE_X)) {
             _state = Game_State::WON;
             ++_upgrade_count;
-            std::cout << int(_upgrade_count) << '\n';
         }
 
         if (_input_manager.key_pressed(SDL_SCANCODE_K)) {
             _active_weapon = Active_Weapon::SHOTGUN;
             _shotgun.reset();
+        }
+        if (_input_manager.key_pressed(SDL_SCANCODE_L)) {
+            _active_weapon = Active_Weapon::HOMING_GUN;
+            _homing_gun.reset();
         }
 
         if (_input_manager.key_pressed(SDL_SCANCODE_J)) {
@@ -535,11 +520,17 @@ void Game::update_playing_state(float dt)
 
     // helper lambda for collectibles
     auto spawn_collectible = [this](const Asteroid& a) {
-        if (peria::get_int(1, 8) == 8 && _unlocked_weapons[static_cast<int>(Active_Weapon::SHOTGUN)]) {
-            _gun_collectibles.emplace_back(Collectible::Collectible_Type::SHOTGUN, a.get_world_pos(), glm::vec2{10.0f, 10.0f});
+        auto pos = a.get_world_pos();
+        const auto [w, h] = get_world_size();
+        if (pos.x < 0.0f)   pos.x = 10.0f;
+        else if (pos.x > w) pos.x = w - 10.0f;
+        if (pos.y < 0.0f)   pos.y = 10.0f;
+        else if (pos.y > h) pos.y = h - 10.0f;
+        if (peria::get_int(1, 15) == 8 && _unlocked_weapons[static_cast<int>(Active_Weapon::SHOTGUN)]) {
+            _gun_collectibles.emplace_back(Collectible::Collectible_Type::SHOTGUN, pos, glm::vec2{10.0f, 10.0f});
         }
-        else if (peria::get_int(1, 8) == 8 && _unlocked_weapons[static_cast<int>(Active_Weapon::HOMING_GUN)]) {
-            _gun_collectibles.emplace_back(Collectible::Collectible_Type::HOMING_GUN, a.get_world_pos(), glm::vec2{10.0f, 10.0f});
+        else if (peria::get_int(1, 15) == 8 && _unlocked_weapons[static_cast<int>(Active_Weapon::HOMING_GUN)]) {
+            _gun_collectibles.emplace_back(Collectible::Collectible_Type::HOMING_GUN, pos, glm::vec2{10.0f, 10.0f});
         }
     };
 
@@ -586,7 +577,9 @@ void Game::update_playing_state(float dt)
                 peria::Polygon bullet_poly{hb.get_world_points()};
                 if (concave_sat(bullet_poly, asteroid_poly)) {
                     hb.explode();
-                    a.hit(); // deal damage
+                    const auto hb_damage = hb.get_damage();
+                    for (uint8_t i{}; i<hb_damage; ++i) 
+                        a.hit(); // deal damage
                     if (a.hp() == 0) {
                         a.explode();
                         // randomly drop collectibles after asteroid explodes
@@ -668,7 +661,7 @@ void Game::update_dead_state()
         _state = Game_State::PLAYING;
     }
     if (_input_manager.key_pressed(SDL_SCANCODE_ESCAPE)) {
-        _state = Game_State::MAIN_MENU;
+        _running = false;
     }
 }
 
@@ -730,9 +723,9 @@ void Game::update_won_state()
 
     if (_upgrade_count > 0) {
         auto gun_upgrade = [](const auto i) {
-            if (i==0) return 0.35f;
-            if (i==1) return 0.30f;
-            if (i==2) return 0.25f;
+            if (i==0) return 0.25f;
+            if (i==1) return 0.20f;
+            if (i==2) return 0.15f;
             return 0.0f;
         };
 
@@ -779,6 +772,33 @@ void Game::update_won_state()
 
     // do homing upgrades here
     if (_upgrade_count > 0) {
+        auto upgrade_homing_gun = [this](int i) {
+            if (i==1) Homing_Bullet::set_damage(2);
+            if (i==2) _homing_gun.set_delay(0.8f);
+            if (i==3) Homing_Bullet::set_damage(3);
+        };
+
+        for (std::size_t i{}; i<_homing_gun_upgrades.size(); ++i) {
+            auto& b = _homing_gun_upgrades[i].b;
+            if (b.is_hovered(mouse.x, mouse.y) && _input_manager.mouse_pressed(Mouse_Button::LEFT) &&
+                ((i > 0 && _homing_gun_upgrades[i-1].upgraded) || i == 0) && !_homing_gun_upgrades[i].upgraded &&
+                _homing_gun_upgrades[i].points_needed <= _upgrade_count) {
+                _homing_gun_upgrades[i].upgraded = true;
+
+                if (i==0) { // unlock
+                    _unlocked_weapons[static_cast<int>(Active_Weapon::HOMING_GUN)] = true;
+                }
+                else {
+                    upgrade_homing_gun(i);
+                }
+
+                _upgrade_count -= _homing_gun_upgrades[i].points_needed;
+                b.set_colors(UPGRADED_BUTTON_COLOR_FG, UPGRADED_BUTTON_COLOR_BORDER);
+                if (i+1 < _homing_gun_upgrades.size()) {
+                    _homing_gun_upgrades[i+1].b.set_colors(NOT_UPGRADED_BUTTON_COLOR_FG, NOT_UPGRADED_BUTTON_COLOR_BORDER);
+                }
+            }
+        }
     }
 
     if (_input_manager.key_pressed(SDL_SCANCODE_RETURN) || _input_manager.key_pressed(SDL_SCANCODE_RETURN2)) {
@@ -803,6 +823,7 @@ void Game::full_reset_on_dead_state()
     _gun = Gun{};
     _shotgun = Shotgun{};
     _homing_gun = Homing_Gun{};
+    Homing_Bullet::set_damage(1);
     for (auto& unlocked:_unlocked_weapons) {
         unlocked = false;
     }

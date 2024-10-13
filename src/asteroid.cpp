@@ -9,9 +9,9 @@
 #include "peria_utils.hpp"
 
 std::array<float, 3> get_speed {
+    250.0f,
     200.0f,
-    170.0f,
-    120.0f
+    150.0f
 };
 
 // made in helper editor

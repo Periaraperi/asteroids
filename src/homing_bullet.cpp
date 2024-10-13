@@ -4,8 +4,10 @@
 #include "physics.hpp"
 #include "game.hpp"
 
-static constexpr float ROT_SPEED = 200.0f;
-static constexpr float BULLET_SPEED = 400.0f;
+static constexpr float ROT_SPEED = 350.0f;
+static constexpr float BULLET_SPEED = 500.0f;
+
+uint8_t Homing_Bullet::_damage = 1;
 
 Homing_Bullet::Homing_Bullet(glm::vec2 world_pos, float radius, int target_index, glm::vec2 initial_direction, float initial_angle, glm::vec4 color)
     :_transform{world_pos, {radius*2.0f, radius*2.0f}, initial_angle},
@@ -73,6 +75,12 @@ int Homing_Bullet::get_target_index() const
 
 void Homing_Bullet::set_target_pos(glm::vec2 target_pos)
 { _target_pos = target_pos; }
+
+void Homing_Bullet::set_damage(uint8_t dmg)
+{ _damage = dmg; }
+
+uint8_t Homing_Bullet::get_damage()
+{ return _damage; }
 
 std::vector<glm::vec2> Homing_Bullet::get_world_points() const
 {
