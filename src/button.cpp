@@ -42,6 +42,6 @@ void Button::draw(Graphics& g) const
     }
 
     if (!_text.text.empty()) {
-        g.draw_text(_text.text, _text.pos, _text.text_color, _text.text_scale);
+        g.draw_text(_text.text, _text.pos, _text.text_color, 48, _text.text_scale);
     }
 }

@@ -10,7 +10,7 @@
     template <typename Head, typename... Tail>
     void peria_log(Head&& h, Tail&&... t)
     {
-        std::cerr << h;
+        std::cerr << std::forward<Head>(h);
         peria_log(std::forward<Tail>(t)...);
     }
     

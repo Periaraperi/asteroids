@@ -22,6 +22,7 @@ public:
         PLAYING,
         DEAD,
         WON,
+        PAUSED,
         DEBUG_HELPER
     };
 
@@ -64,6 +65,7 @@ private:
     void update_playing_state(float dt);
     void update_dead_state();
     void update_won_state();
+    void update_paused_state();
 
     void reset_state();
     void full_reset_on_dead_state();

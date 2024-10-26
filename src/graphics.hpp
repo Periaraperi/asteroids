@@ -1,9 +1,9 @@
 #pragma once
 
-#include <unordered_map>
 #include <utility>
 #include <string>
 #include <memory>
+#include <array>
 
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
@@ -68,6 +68,11 @@ struct Glyph {
     int offset_y;
 };
 
+struct Font_Atlas_Data {
+    std::unique_ptr<Texture> atlas;
+    glm::vec2 atlas_size;
+};
+
 class Graphics {
 public:
     Graphics(const Window_Settings& settings);
@@ -116,7 +121,7 @@ public:
     // for debug now. TODO: implement with shaders
     void draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color);
 
-    void draw_text(const std::string& text, glm::vec2 pos, glm::vec3 color, float scale=1.0f);
+    void draw_text(const std::string& text, glm::vec2 pos, glm::vec3 color, int32_t font_size, float scale=1.0f);
 
 private:
     void cleanup();
@@ -144,17 +149,15 @@ private:
     glm::mat4 _projection;
     glm::mat4 _game_world_projection;
 
-    glm::vec2 _text_atlas_size;
-
     std::unique_ptr<Shader> _triangle_shader;
     std::unique_ptr<Shader> _circle_shader;
     std::unique_ptr<Shader> _line_shader;
     std::unique_ptr<Shader> _text_shader;
     std::unique_ptr<Shader> _texture_shader;
 
-    std::unique_ptr<Texture> _text_atlas;
-    
-    std::unordered_map<char, Glyph> _glyphs;
+    std::vector<Font_Atlas_Data> _font_atlases;
+    std::array<bool, 81> _font_size_loaded{};
+    std::vector<std::array<Glyph, 5000>> _font_structure;
 
     std::unique_ptr<Frame_Buffer> _fbo;
     std::unique_ptr<Frame_Buffer> _fbo_multisampled;
@@ -170,8 +173,8 @@ private:
     std::unique_ptr<Vertex_Array> _rect_batch_vao;
     std::unique_ptr<Vertex_Buffer<Simple_Vertex>> _rect_batch_vbo;
 
-    std::unique_ptr<Vertex_Array> _text_vao;
-    std::unique_ptr<Vertex_Buffer<Rect_Vertex>> _text_vbo;
+    std::vector<std::unique_ptr<Vertex_Array>> _text_vaos;
+    std::vector<std::unique_ptr<Vertex_Buffer<Rect_Vertex>>> _text_vbos;
 
     std::unique_ptr<Index_Buffer> _ibo;
 
@@ -181,6 +184,10 @@ private:
     void init_circle_batch_data();
     void init_triangle_batch_data();
     void init_rect_batch_data();
+
+    void load_font(const char* rel_path, int32_t font_size);
+
+    std::string _game_font_path = "res/iosevka-regular.ttf";
 
 public:
     Graphics(const Graphics&) = delete;

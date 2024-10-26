@@ -21,6 +21,8 @@ constexpr int MAX_TRIANGLE_COUNT = 4096*2; // this many triangles per batch
 constexpr int MAX_RECT_COUNT = 4096;
 constexpr int MAX_CIRCLE_COUNT = 4096;
 
+static FT_Library _ft;
+
 void Graphics::init_triangle_batch_data()
 {
     _triangle_batch_vao = std::make_unique<Vertex_Array>();
@@ -151,99 +153,16 @@ Graphics::Graphics(const Window_Settings& settings)
 
     init_circle_batch_data();
 
-    //if (0)
-    { // STILL EXPERIMENTING. Convert to SDF rendering later for better flexibility
-        // font related stuff here
-        FT_Library ft;
-        if (FT_Init_FreeType(&ft) != 0) {
-            PERIA_LOG("Failed to load freetype lib");
-            std::exit(EXIT_FAILURE);
-        }
-
-        FT_Face face;
-        if (FT_New_Face(ft, "./res/iosevka-regular.ttf", 0, &face) != 0) {
-            PERIA_LOG("Failed to load font face\n", "Filepath: './res/iosevka-regular.ttf'");
-            std::exit(EXIT_FAILURE);
-        }
-
-        if (FT_Set_Pixel_Sizes(face, 0, 48) != 0) {
-            PERIA_LOG("Failed to set pixel size");
-            std::exit(EXIT_FAILURE);
-        }
-
-        // hardcode for now
-        _text_atlas_size = {512, 512};
-        _text_atlas = std::make_unique<Texture>(_text_atlas_size.x, _text_atlas_size.y, GL_RED, GL_RED);
-
-        int32_t xoff = 0;
-        int32_t yoff = 0;
-        int32_t max_y = 0; // dimensions are positive so assume min is 0
-
-        for (uint8_t ch=32; ch<127; ++ch) {
-            if (FT_Load_Char(face, ch, FT_LOAD_RENDER) != 0) {
-                PERIA_LOG("Failed to FT_Load_Char() on char ", ch);
-                std::exit(EXIT_FAILURE); // MUST LOAD ALL GLYPHS
-            }
-
-            _glyphs[ch] = {
-                face->glyph->advance.x,
-                {face->glyph->bitmap.width, face->glyph->bitmap.rows},
-                {face->glyph->bitmap_left, face->glyph->bitmap_top},
-                xoff, yoff // offset inside texture atlas
-            };
-
-            const auto& glyph = _glyphs[ch];
-            max_y = std::max(max_y, glyph.size.y);
-
-            PERIA_LOG(ch," info: ");
-            PERIA_LOG(glyph.advance, " ", glyph.size.x , " "
-                      , glyph.size.y , " " , glyph.bearing.x , " " , glyph.bearing.y , " "
-                      , xoff , " " , yoff , '\n');
-            //continue;
-            auto glyph_width = face->glyph->bitmap.width;
-            auto glyph_height = face->glyph->bitmap.rows;
-
-            std::vector<uint8_t> reversed(glyph_width*glyph_height);
-            for (std::size_t i{}; i<glyph_height; ++i) {
-                for (std::size_t j{}; j<glyph_width; ++j) {
-                    reversed[glyph_width*(glyph_height-i-1)+j] = face->glyph->bitmap.buffer[glyph_width*i+j];
-                }
-            }
-            
-            _text_atlas->write_sub_texture(xoff, yoff, 
-                    face->glyph->bitmap.width, face->glyph->bitmap.rows,
-                    reversed.data());
-            xoff += (glyph.advance >> 6);
-            if ((xoff + (glyph.advance >> 6)) >= _text_atlas_size.x) {
-                xoff = 0;
-                yoff += max_y;
-                max_y = 0;
-            }
-        }
-
-        // cleanup
-        if (FT_Done_Face(face) != 0) {
-            PERIA_LOG("Failed on FT_Done_Face()");
-            std::exit(EXIT_FAILURE);
-        }
-        if (FT_Done_FreeType(ft) != 0) {
-            PERIA_LOG("Failed on FT_Done_Freetype()");
-            std::exit(EXIT_FAILURE);
-        }
-
-        _text_vao = std::make_unique<Vertex_Array>();
-        _text_vbo = std::make_unique<Vertex_Buffer<Rect_Vertex>>(sizeof(Rect_Vertex)*4*MAX_RECT_COUNT);
-        
-        _ibo->bind();
-
-        // quad pos
-        _text_vao->add_attribute(2, GL_FLOAT, false, sizeof(Rect_Vertex));
-        // tex coords
-        _text_vao->add_attribute(2, GL_FLOAT, false, sizeof(Rect_Vertex));
-        // color
-        _text_vao->add_attribute(4, GL_FLOAT, false, sizeof(Rect_Vertex));
-        _text_vao->set_layout();
+    if (FT_Init_FreeType(&_ft) != 0) {
+        PERIA_LOG("Failed to load freetype lib");
+        std::exit(EXIT_FAILURE);
     }
+
+    _font_atlases.resize(81);
+    _font_structure.resize(81);
+    _text_vaos.resize(81);
+    _text_vbos.resize(81);
+    load_font(_game_font_path.c_str(), 48); //load default 48 size font
 
     { // screen framebuffer
         _screen_vao = std::make_unique<Vertex_Array>();
@@ -279,6 +198,8 @@ Graphics::~Graphics()
 
 void Graphics::cleanup()
 {
+    FT_Done_FreeType(_ft);
+
     // we want custom order for deletion, hence .reset()
     // shaders before SDL
     _triangle_shader.reset();
@@ -293,15 +214,21 @@ void Graphics::cleanup()
 	_rect_batch_vbo.reset();
 	_triangle_batch_vbo.reset();
 	_screen_vbo.reset();
-	_text_vbo.reset();
+    for (auto& vbo:_text_vbos) {
+        vbo.reset();
+    }
 
 	_circle_batch_vao.reset();
 	_triangle_batch_vao.reset();
 	_rect_batch_vao.reset();
-	_text_vao.reset();
+    for (auto& vao:_text_vaos) {
+        vao.reset();
+    }
 	_screen_vao.reset();
 
-	_text_atlas.reset();
+    for (auto& fa:_font_atlases) {
+        fa.atlas.reset();
+    }
 
 	_fbo.reset();
 	_fbo_multisampled.reset();
@@ -311,6 +238,98 @@ void Graphics::cleanup()
     SDL_DestroyWindow(_window);
 
     SDL_Quit();
+}
+
+void Graphics::load_font(const char* rel_path, int32_t font_size)
+{
+    PERIA_ASSERT(font_size >= 20 && font_size <= 80, "Font size can be in range of 20,80");
+    if (font_size < 20 || font_size > 80) return;
+
+    if (_font_size_loaded[font_size]) return;
+
+    FT_Face face;
+    if (FT_New_Face(_ft, rel_path, 0, &face) != 0) {
+        PERIA_LOG("Failed to load font face\n", "Filepath: ", rel_path);
+        std::exit(EXIT_FAILURE);
+    }
+
+    if (FT_Set_Pixel_Sizes(face, 0, font_size) != 0) {
+        PERIA_LOG("Failed to set pixel size");
+        std::exit(EXIT_FAILURE);
+    }
+
+    int32_t xoff = 0;
+    [[maybe_unused]] int32_t yoff = 0;
+    int32_t max_y = 0; // dimensions are positive so assume min is 0
+    int32_t atlas_width = 0;
+
+    // we store reversed because of our frame of reference
+    std::array<std::vector<uint8_t>, 128> glyph_reversed_buffers;
+
+    for (uint8_t ch=32; ch<127; ++ch) {
+        if (FT_Load_Char(face, ch, FT_LOAD_RENDER) != 0) {
+            PERIA_LOG("Failed to FT_Load_Char() on char ", ch);
+            std::exit(EXIT_FAILURE); // MUST LOAD ALL GLYPHS
+        }
+
+        _font_structure[font_size][ch] = {
+            face->glyph->advance.x,
+            {face->glyph->bitmap.width, face->glyph->bitmap.rows},
+            {face->glyph->bitmap_left, face->glyph->bitmap_top},
+            xoff, {} 
+        };
+        const auto& glyph = _font_structure[font_size][ch];
+        const auto& glyph_width = glyph.size.x;
+        const auto& glyph_height = glyph.size.y;
+        glyph_reversed_buffers[ch].resize(glyph_width*glyph_height);
+
+        for (int i{}; i<glyph_height; ++i) {
+            for (int j{}; j<glyph_width; ++j) {
+                glyph_reversed_buffers[ch][glyph_width*(glyph_height-i-1)+j] = face->glyph->bitmap.buffer[glyph_width*i+j];
+            }
+        }
+
+        max_y = std::max(max_y, glyph.size.y);
+        atlas_width += (glyph.advance >> 6);
+        xoff += (glyph.advance >> 6);
+    }
+
+    _font_atlases[font_size].atlas_size = {atlas_width, max_y};
+    _font_atlases[font_size].atlas = std::make_unique<Texture>(_font_atlases[font_size].atlas_size.x, _font_atlases[font_size].atlas_size.y, GL_RED, GL_RED);
+
+    for (uint8_t ch=32; ch<127; ++ch) {
+        const auto& glyph = _font_structure[font_size][ch];
+        auto& font_atlas = _font_atlases[font_size].atlas;
+
+        const auto& glyph_width = glyph.size.x;
+        const auto& glyph_height = glyph.size.y;
+
+        font_atlas->write_sub_texture(glyph.offset_x, glyph.offset_y,
+                glyph_width, glyph_height,
+                glyph_reversed_buffers[ch].data());
+    }
+
+    // cleanup
+    if (FT_Done_Face(face) != 0) {
+        PERIA_LOG("Failed on FT_Done_Face()");
+        std::exit(EXIT_FAILURE);
+    }
+
+    _font_size_loaded[font_size] = true;
+    _text_vaos[font_size] = std::make_unique<Vertex_Array>();
+    _text_vbos[font_size] = std::make_unique<Vertex_Buffer<Rect_Vertex>>(sizeof(Rect_Vertex)*4*MAX_RECT_COUNT);
+    
+    _ibo->bind();
+
+    // quad pos
+    _text_vaos[font_size]->add_attribute(2, GL_FLOAT, false, sizeof(Rect_Vertex));
+    // tex coords
+    _text_vaos[font_size]->add_attribute(2, GL_FLOAT, false, sizeof(Rect_Vertex));
+    // color
+    _text_vaos[font_size]->add_attribute(4, GL_FLOAT, false, sizeof(Rect_Vertex));
+    _text_vaos[font_size]->set_layout();
+
+    _text_vaos[font_size]->unbind();
 }
 
 void Graphics::set_window_viewport()
@@ -505,26 +524,29 @@ std::array<glm::vec2, 4> tex_coords_tmp(int x, int y, int w, int h, glm::vec2 at
 // adds vertex data to large buffer
 // pos start at bottom left corner unlike other drawing routines
 void Graphics::draw_text(const std::string& text, glm::vec2 pos,
-                         glm::vec3 color, float scale /* = 1.0f*/)
+                         glm::vec3 color, int32_t font_size, float scale /* = 1.0f*/)
 {
+    if (!_font_size_loaded[font_size]) {
+        load_font(_game_font_path.c_str(), font_size);
+    }
+
     for (const auto& c:text) {
-        auto glyph = _glyphs[c];
+        const auto& glyph = _font_structure[font_size][c];
         float xpos = pos.x + glyph.bearing.x*scale;
         float ypos = pos.y - (glyph.size.y - glyph.bearing.y)*scale;
 
         float w = glyph.size.x*scale;
         float h = glyph.size.y*scale;
 
-        auto tex_coords = tex_coords_tmp(glyph.offset_x, glyph.offset_y, glyph.size.x, glyph.size.y, _text_atlas_size);
+        auto tex_coords = tex_coords_tmp(glyph.offset_x, glyph.offset_y, glyph.size.x, glyph.size.y, _font_atlases[font_size].atlas_size);
 
-        _text_vbo->add_data({{xpos,   ypos  }, {tex_coords[0].x, tex_coords[0].y}, {color.r, color.g, color.b, 1.0f}});
-        _text_vbo->add_data({{xpos,   ypos+h}, {tex_coords[1].x, tex_coords[1].y}, {color.r, color.g, color.b, 1.0f}});
-        _text_vbo->add_data({{xpos+w, ypos+h}, {tex_coords[2].x, tex_coords[2].y}, {color.r, color.g, color.b, 1.0f}});
-        _text_vbo->add_data({{xpos+w, ypos  }, {tex_coords[3].x, tex_coords[3].y}, {color.r, color.g, color.b, 1.0f}});
+        _text_vbos[font_size]->add_data({{xpos,   ypos  }, {tex_coords[0].x, tex_coords[0].y}, {color.r, color.g, color.b, 1.0f}});
+        _text_vbos[font_size]->add_data({{xpos,   ypos+h}, {tex_coords[1].x, tex_coords[1].y}, {color.r, color.g, color.b, 1.0f}});
+        _text_vbos[font_size]->add_data({{xpos+w, ypos+h}, {tex_coords[2].x, tex_coords[2].y}, {color.r, color.g, color.b, 1.0f}});
+        _text_vbos[font_size]->add_data({{xpos+w, ypos  }, {tex_coords[3].x, tex_coords[3].y}, {color.r, color.g, color.b, 1.0f}});
 
         pos.x += (glyph.advance >> 6)*scale;
     }
-
 }
 
 // should be called on each frame only once before swapping buffers.
@@ -633,32 +655,35 @@ void Graphics::render_circles()
 
 void Graphics::render_text()
 {
-    if (_text_vbo->data_empty()) return;
+    for (int font_size=20; font_size<=80; ++font_size) {
+        if (_text_vbos[font_size] == nullptr || _text_vbos[font_size]->data_empty()) continue;
 
-    int count = _text_vbo->data_size() / 4; // overall, this many rects
-    std::size_t offset = 0; // offset inside text _data
+        int count = _text_vbos[font_size]->data_size() / 4; // overall, this many rects
+        std::size_t offset = 0; // offset inside text _data
 
-    _text_vao->bind();
-    _text_vbo->bind();
-    // just reuse tri shader
-    _text_shader->bind();
-    _text_shader->set_mat4("u_mvp", _game_world_projection);
-    _text_atlas->bind();
-    
-    while (count > 0) {
-        int c = 0; // count of rects for each batch
-        if (count >= MAX_RECT_COUNT) {
-            c = MAX_RECT_COUNT;
+        _text_vaos[font_size]->bind();
+        _text_vbos[font_size]->bind();
+        // just reuse tri shader
+        _text_shader->bind();
+        _text_shader->set_mat4("u_mvp", _game_world_projection);
+        _font_atlases[font_size].atlas->bind();
+        
+        while (count > 0) {
+            int c = 0; // count of rects for each batch
+            if (count >= MAX_RECT_COUNT) {
+                c = MAX_RECT_COUNT;
+            }
+            else { // smaller remaining batch
+                c = count;
+            }
+            _text_vbos[font_size]->set_subdata(0, offset, 4*c*sizeof(Rect_Vertex));
+            GL_CALL(glDrawElements(GL_TRIANGLES, c*6, GL_UNSIGNED_INT, nullptr));
+            offset += 4*c;
+            count -= c;
         }
-        else { // smaller remaining batch
-            c = count;
-        }
-        _text_vbo->set_subdata(0, offset, 4*c*sizeof(Rect_Vertex));
-        GL_CALL(glDrawElements(GL_TRIANGLES, c*6, GL_UNSIGNED_INT, nullptr));
-        offset += 4*c;
-        count -= c;
+
+        _text_vbos[font_size]->clear_data();
+        _text_vbos[font_size]->unbind();
+        _text_vaos[font_size]->unbind();
     }
-
-    _text_vbo->clear_data();
-    _text_vbo->unbind();
 }

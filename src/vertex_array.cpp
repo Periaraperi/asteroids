@@ -31,16 +31,6 @@ Vertex_Array::Vertex_Array()
     bind();
 }
 
-// TODO: this class does not work unless I instantiate through
-// smart or raw pointer. Think about this later.
-// If can do on stack make move only type
-//
-//Vertex_Array::Vertex_Array(Vertex_Array&& rhs)
-//    :_vao{rhs._vao}, _attributes{std::move(rhs._attributes)}
-//{
-//    rhs._vao = 0; // object moved so make its id 0
-//}
-
 Vertex_Array::~Vertex_Array()
 {
     GL_CALL(glDeleteVertexArrays(1, &_vao));

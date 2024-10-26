@@ -27,8 +27,10 @@ constexpr glm::vec4 DISABLED_UPGRADE_BUTTON_COLOR_BORDER{0.502f, 0.502f, 0.502f,
 
 constexpr glm::vec4 WHITE{1.0f, 1.0f, 1.0f, 1.0f};
 
+int font_size = 20;
+
 Game::Game(Graphics& graphics, Input_Manager& input_manager)
-    :_running{true}, _state{Game_State::DEAD},
+    :_running{true}, _state{Game_State::MAIN_MENU},
      _graphics{graphics}, _input_manager{input_manager}, 
      _active_weapon{Active_Weapon::GUN},
      _level_id{0}
@@ -184,15 +186,6 @@ void Game::run()
 
         // fixed loop here
         while (accumulator >= step) {
-            if (_input_manager.key_pressed(SDL_SCANCODE_F)) {
-                _graphics.toggle_fullscreen();
-            }
-
-            if (_input_manager.key_pressed(SDL_SCANCODE_V)) {
-                vsync = !vsync;
-                _graphics.vsync(vsync);
-            }
-
             // do physics and game logic updates here
             update(step);
             accumulator -= step;
@@ -219,8 +212,8 @@ void Game::render(float alpha)
 
     switch(_state) {
         case Game_State::MAIN_MENU:
-            _graphics.draw_text("Asteroids", {w*0.5f - 120.0f, h - 350.0f}, text_color);
-            _graphics.draw_text("Press ENTER To Play", {w*0.5f - 220.0f, h*0.5f}, text_color);
+            _graphics.draw_text("Asteroids", {w*0.5f - 120.0f, h - 350.0f}, text_color, 48);
+            _graphics.draw_text("Press ENTER To Play", {w*0.5f - 220.0f, h*0.5f}, text_color, 48);
             break;
         case Game_State::PLAYING:
         {
@@ -252,25 +245,25 @@ void Game::render(float alpha)
                 }
             }
 
-            _graphics.draw_text("Asteroids Left: " + std::to_string(_asteroids.size()), {0.0f, h-25.0f}, text_color, 0.5f);
+            _graphics.draw_text("Asteroids Left: " + std::to_string(_asteroids.size()), {0.0f, h-25.0f}, text_color, 30);
             if (_active_weapon == Active_Weapon::SHOTGUN) {
-                _graphics.draw_text("Shotgun: " + std::to_string(static_cast<int>(_shotgun.timer())), {600.0f, h-30}, text_color, 0.7f);
+                _graphics.draw_text("Shotgun: " + std::to_string(static_cast<int>(_shotgun.timer())), {0.0f, h-55}, text_color, 30);
             }
             if (_active_weapon == Active_Weapon::HOMING_GUN) {
-                _graphics.draw_text("HomingGun: " + std::to_string(static_cast<int>(_homing_gun.timer())), {600.0f, h-30}, text_color, 0.7f);
+                _graphics.draw_text("HomingGun: " + std::to_string(static_cast<int>(_homing_gun.timer())), {0.0f, h-55}, text_color, 30);
             }
         } break;
         case Game_State::DEAD:
         {
-            _graphics.draw_text("YOU LOST", {w*0.5f - 120.0f, h - 200.0f}, text_color);
-            _graphics.draw_text("Press ENTER To Play Again", {w*0.5f - 300.0f, h - 300.0f}, text_color);
-            _graphics.draw_text("Press ESC To Quit", {w*0.5f - 210.0f, h - 400.0f}, text_color);
+            _graphics.draw_text("YOU LOST", {w*0.5f - 120.0f, h - 200.0f}, text_color, 48);
+            _graphics.draw_text("Press ENTER To Play Again", {w*0.5f - 300.0f, h - 300.0f}, text_color, 48);
+            _graphics.draw_text("Press ESC To Quit", {w*0.5f - 210.0f, h - 400.0f}, text_color, 48);
         } break;
         case Game_State::WON:
         {
-            _graphics.draw_text("YOU WON", {w*0.5f - 120.0f, h - 50.0f}, text_color);
-            _graphics.draw_text("Choose Your Upgrade", {w*0.5f - 245.0f, h - 120.0f}, text_color);
-            _graphics.draw_text("Points "+std::to_string(_upgrade_count), {w*0.5f - 100.0f, h - 170.0f}, text_color, 0.70f);
+            _graphics.draw_text("YOU WON", {w*0.5f - 120.0f, h - 50.0f}, text_color, 48);
+            _graphics.draw_text("Choose Your Upgrade", {w*0.5f - 245.0f, h - 120.0f}, text_color, 48);
+            _graphics.draw_text("Points "+std::to_string(_upgrade_count), {w*0.5f - 100.0f, h - 170.0f}, text_color, 48, 0.70f);
             auto mouse = peria::get_mapped_mouse(_graphics, _input_manager);
             mouse.y = get_world_size().y - mouse.y;
             
@@ -279,40 +272,43 @@ void Game::render(float alpha)
                 const auto text_start_x = w*0.5f - 700.0f;
                 const auto text_start_y = h*0.5f + 170.0f;
                 const auto offset = 85.0f;
-                _graphics.draw_text("ship speed", {text_start_x, text_start_y - offset*0}, text_color);
+                _graphics.draw_text("ship speed", {text_start_x, text_start_y - offset*0}, text_color, 48);
                 for (const auto& u:_ship_speed_upgrades) {
                     u.b.draw(_graphics);
                 }
 
-                _graphics.draw_text("ship rotation speed", {text_start_x, text_start_y - offset*1}, text_color);
+                _graphics.draw_text("ship rotation speed", {text_start_x, text_start_y - offset*1}, text_color, 48);
                 for (const auto& u:_ship_rotation_speed_upgrades) {
                     u.b.draw(_graphics);
                 }
 
-                _graphics.draw_text("ship max health", {text_start_x, text_start_y - offset*2}, text_color);
+                _graphics.draw_text("ship max health", {text_start_x, text_start_y - offset*2}, text_color, 48);
                 for (const auto& u:_ship_max_health_upgrades) {
                     u.b.draw(_graphics);
                 }
 
-                _graphics.draw_text("gun", {text_start_x, text_start_y - offset*3}, text_color);
+                _graphics.draw_text("gun", {text_start_x, text_start_y - offset*3}, text_color, 48);
                 for (const auto& u:_gun_upgrades) {
                     u.b.draw(_graphics);
                 }
 
-                _graphics.draw_text("shotgun", {text_start_x, text_start_y - offset*4 + 10.0f}, text_color);
+                _graphics.draw_text("shotgun", {text_start_x, text_start_y - offset*4 + 10.0f}, text_color, 48);
                 for (const auto& u:_shotgun_upgrades) {
                     u.b.draw(_graphics);
                 }
 
-                _graphics.draw_text("homing gun", {text_start_x, text_start_y - offset*5 + 10.0f}, text_color);
+                _graphics.draw_text("homing gun", {text_start_x, text_start_y - offset*5 + 10.0f}, text_color, 48);
                 for (const auto& u:_homing_gun_upgrades) {
                     u.b.draw(_graphics);
                 }
             }
 
-            _graphics.draw_text("Press Enter To Continue", {w*0.5f - 300.0f, 50.0f}, text_color);
+            _graphics.draw_text("Press Enter To Continue", {w*0.5f - 300.0f, 50.0f}, text_color, 48);
             _graphics.draw_circle(mouse, 3.0f, {1.0f, 1.0f, 1.0f, 1.0f});
         } break;
+        case Game_State::PAUSED:
+            _graphics.draw_text("PAUSED", {w*0.5f - 100, 0.5f*h}, {0.80f, 0.80f, 0.90f}, 60);
+            break;
         case Game_State::DEBUG_HELPER:
         #ifdef PERIA_DEBUG
             peria::draw(_graphics, _input_manager);
@@ -342,6 +338,9 @@ void Game::update(float dt)
             break;
         case Game_State::WON:
             update_won_state();
+            break;
+        case Game_State::PAUSED:
+            update_paused_state();
             break;
         case Game_State::DEBUG_HELPER:
         #ifdef PERIA_DEBUG
@@ -376,27 +375,11 @@ void Game::update_main_menu_state()
 
 void Game::update_playing_state(float dt)
 {
-    // testing
-    {
-        if (_input_manager.key_pressed(SDL_SCANCODE_X)) {
-            _state = Game_State::WON;
-            ++_upgrade_count;
-        }
 
-        if (_input_manager.key_pressed(SDL_SCANCODE_K)) {
-            _active_weapon = Active_Weapon::SHOTGUN;
-            _shotgun.reset();
-        }
-        if (_input_manager.key_pressed(SDL_SCANCODE_L)) {
-            _active_weapon = Active_Weapon::HOMING_GUN;
-            _homing_gun.reset();
-        }
-
-        if (_input_manager.key_pressed(SDL_SCANCODE_J)) {
-            _shotgun.upgrade();
-        }
+    if (_input_manager.key_pressed(SDL_SCANCODE_P)) {
+        _state = Game_State::PAUSED;
+        return;
     }
-
 
     // do weapon update based on currently active weapon
     switch (_active_weapon) {
@@ -648,6 +631,13 @@ void Game::update_playing_state(float dt)
     if (_asteroids.empty()) {
         ++_upgrade_count;
         _state = Game_State::WON;
+    }
+}
+
+void Game::update_paused_state()
+{
+    if (_input_manager.key_pressed(SDL_SCANCODE_P) || _input_manager.key_pressed(SDL_SCANCODE_RETURN)) {
+        _state = Game_State::PLAYING;
     }
 }
 

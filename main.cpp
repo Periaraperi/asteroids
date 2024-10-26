@@ -5,7 +5,7 @@
 #include "graphics.hpp"
 #include "input_manager.hpp"
 
-int main(int argc, char** argv)
+int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv)
 {
     Graphics graphics{Window_Settings{"asteroids", 1600, 900, false, true}};
     graphics.set_clear_color(1.0f, 1.0f, 1.0f, 1.0f);
