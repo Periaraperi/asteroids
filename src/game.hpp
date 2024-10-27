@@ -29,9 +29,8 @@ public:
     struct Collectible {
         enum class Collectible_Type {
             SHOTGUN,
-            HOMING_GUN,
+            HOMING_GUN
         };
-
         Collectible() = default;
         Collectible(Collectible_Type type_, const glm::vec2& pos_, const glm::vec2& size_)
             :type{type_}, pos{pos_}, size{size_}
@@ -126,6 +125,7 @@ private:
 
     uint8_t _upgrade_count{0};
     std::array<bool, 3> _unlocked_weapons;
+
 public:
     // disable copy move ops
     Game(const Game&) = delete;

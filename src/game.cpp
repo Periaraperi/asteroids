@@ -2,6 +2,10 @@
 
 #include <SDL2/SDL.h>
 #include <algorithm>
+#include <iomanip>
+#include <sstream>
+#include <fstream>
+#include <filesystem>
 
 #include "graphics.hpp"
 #include "input_manager.hpp"
@@ -16,6 +20,7 @@
 
 #include "helper.hpp"
 
+namespace {
 constexpr glm::vec4 UPGRADED_BUTTON_COLOR_FG{0.125f, 0.698f, 0.667f, 1.0f};
 constexpr glm::vec4 UPGRADED_BUTTON_COLOR_BORDER{0.0f, 0.502f, 0.502f, 1.0f};
 
@@ -27,7 +32,58 @@ constexpr glm::vec4 DISABLED_UPGRADE_BUTTON_COLOR_BORDER{0.502f, 0.502f, 0.502f,
 
 constexpr glm::vec4 WHITE{1.0f, 1.0f, 1.0f, 1.0f};
 
-int font_size = 20;
+struct Stats {
+    float total_time{};
+    int level_count{};
+};
+struct Stats_Str {
+    std::string total_time{};
+    std::string level_count{};
+};
+
+Stats current_stats{};
+float current_time{};
+
+bool new_best{false};
+
+void update_stats()
+{
+    const auto current_path = std::filesystem::current_path();
+    if (std::filesystem::exists(current_path/"stats")) {
+        std::ifstream ifs{current_path/"stats"};
+
+        std::string time; std::getline(ifs, time);
+        std::string levels; std::getline(ifs, levels);
+
+        int level_count = std::stoi(levels);
+        float total_time = std::stof(time);
+
+        // we managed to beat more levels, or
+        // we beat same amount levels but in shorter amount of time
+        if ((current_stats.level_count > level_count) ||
+            (current_stats.level_count == level_count && current_stats.total_time < total_time)) {
+            new_best = true;
+            std::ofstream ofs{current_path/"stats"};
+            ofs << std::fixed << std::setprecision(2) << current_stats.total_time
+                << '\n' << current_stats.level_count;
+        }
+    }
+    else {
+        std::ofstream ofs{current_path/"stats"};
+        ofs << std::fixed << std::setprecision(2) << current_stats.total_time
+            << '\n' << current_stats.level_count;
+    }
+}
+
+[[nodiscard]]
+Stats_Str read_stats()
+{
+    std::stringstream ss;
+    ss << "Total time - " << std::fixed << std::setprecision(2) << current_stats.total_time << "s";
+    return {ss.str(), "Levels beaten - "+std::to_string(current_stats.level_count)};
+}
+
+}
 
 Game::Game(Graphics& graphics, Input_Manager& input_manager)
     :_running{true}, _state{Game_State::MAIN_MENU},
@@ -161,8 +217,6 @@ void Game::run()
     float accumulator = 0.0f;
     constexpr float step = 1.0f/60.0f;
 
-    bool vsync = _graphics.get_vsync() == 0 ? false : true;
-
     while (_running) {
         uint32_t now = SDL_GetTicks();
         float frame_time = (now - prev) / 1000.0f; // delta time in seconds
@@ -245,6 +299,12 @@ void Game::render(float alpha)
                 }
             }
 
+            {
+                std::stringstream ss;
+                ss << std::fixed << std::setprecision(2) << current_time;
+                _graphics.draw_text(ss.str(), {w*0.5f, h-30}, text_color, 30);
+            }
+
             _graphics.draw_text("Asteroids Left: " + std::to_string(_asteroids.size()), {0.0f, h-25.0f}, text_color, 30);
             if (_active_weapon == Active_Weapon::SHOTGUN) {
                 _graphics.draw_text("Shotgun: " + std::to_string(static_cast<int>(_shotgun.timer())), {0.0f, h-55}, text_color, 30);
@@ -255,9 +315,21 @@ void Game::render(float alpha)
         } break;
         case Game_State::DEAD:
         {
-            _graphics.draw_text("YOU LOST", {w*0.5f - 120.0f, h - 200.0f}, text_color, 48);
-            _graphics.draw_text("Press ENTER To Play Again", {w*0.5f - 300.0f, h - 300.0f}, text_color, 48);
-            _graphics.draw_text("Press ESC To Quit", {w*0.5f - 210.0f, h - 400.0f}, text_color, 48);
+            _graphics.draw_text("YOU LOST", {w*0.5f - 120.0f, h - 100.0f}, text_color, 48);
+            _graphics.draw_text("Press ENTER To Play Again", {w*0.5f - 300.0f, h - 200.0f}, text_color, 48);
+            _graphics.draw_text("Press ESC To Quit", {w*0.5f - 210.0f, h - 300.0f}, text_color, 48);
+            _graphics.draw_text("Stats", {w*0.5f-60, h - 400.0f}, text_color, 48);
+            
+            const auto [total_time, levels] = read_stats();
+
+            _graphics.draw_text(levels, {w*0.5f-200, h - 500.0f}, text_color, 48);
+            if (current_stats.level_count != 0) {
+                _graphics.draw_text(total_time, {w*0.5f-200, h - 600.0f}, text_color, 48);
+            }
+            if (new_best) {
+                _graphics.draw_text("New Best", {w*0.5f-80, h - 700.0f}, {0.5f, 0.7f, 0.6f}, 48);
+            }
+
         } break;
         case Game_State::WON:
         {
@@ -375,11 +447,12 @@ void Game::update_main_menu_state()
 
 void Game::update_playing_state(float dt)
 {
-
     if (_input_manager.key_pressed(SDL_SCANCODE_P)) {
         _state = Game_State::PAUSED;
         return;
     }
+
+    current_time += dt;
 
     // do weapon update based on currently active weapon
     switch (_active_weapon) {
@@ -526,6 +599,8 @@ void Game::update_playing_state(float dt)
                 if (concave_sat(ship_poly, asteroid_poly)) {
                     _ship->hit();
                     if (_ship->hp() == 0) {
+                        // update stats
+                        update_stats();
                         _state = Game_State::DEAD;
                         return;
                     }
@@ -630,6 +705,8 @@ void Game::update_playing_state(float dt)
 
     if (_asteroids.empty()) {
         ++_upgrade_count;
+        current_stats.total_time += current_time;
+        ++current_stats.level_count;
         _state = Game_State::WON;
     }
 }
@@ -643,10 +720,10 @@ void Game::update_paused_state()
 
 void Game::update_dead_state()
 {
-    // reset all levels and upgrades
-    full_reset_on_dead_state();
-
     if (_input_manager.key_pressed(SDL_SCANCODE_RETURN) || _input_manager.key_pressed(SDL_SCANCODE_RETURN2)) {
+        // reset all levels and upgrades
+        full_reset_on_dead_state();
+
         _level_init_calls[_level_id]();
         _state = Game_State::PLAYING;
     }
@@ -806,6 +883,10 @@ void Game::update_won_state()
 // also called in constructor of game just to reset everything
 void Game::full_reset_on_dead_state()
 {
+    current_time = 0.0f;
+    current_stats = {};
+    new_best = false;
+
     _level_id = 0;
     _upgrade_count = 0;
     const auto [w, h] = get_world_size();
@@ -857,6 +938,7 @@ void Game::reset_state()
     _gun_collectibles.clear();
     _active_weapon = Active_Weapon::GUN;
     _gun.reset();
+    current_time = 0.0f;
 }
 
 void Game::init_level1()
