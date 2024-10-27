@@ -86,3 +86,9 @@ elseif (WIN32) # currently setup for MSVC compiler
         ${EXTERNAL_INCLUDE_DIR}/sdl2/lib/x64/SDL2main.lib
         ${EXTERNAL_INCLUDE_DIR}/freetype/lib/freetype.lib)
 endif()
+
+set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR})
+install(TARGETS asteroids
+        CONFIGURATIONS Release
+        RUNTIME DESTINATION bin)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/res/ DESTINATION bin/res CONFIGURATIONS Release)

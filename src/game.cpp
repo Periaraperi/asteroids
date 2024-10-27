@@ -46,11 +46,22 @@ float current_time{};
 
 bool new_best{false};
 
-void update_stats()
+
+[[nodiscard]]
+Stats_Str read_stats()
 {
-    const auto current_path = std::filesystem::current_path();
-    if (std::filesystem::exists(current_path/"stats")) {
-        std::ifstream ifs{current_path/"stats"};
+    std::stringstream ss;
+    ss << "Total time - " << std::fixed << std::setprecision(2) << current_stats.total_time << "s";
+    return {ss.str(), "Levels beaten - "+std::to_string(current_stats.level_count)};
+}
+
+}
+
+void Game::update_stats()
+{
+    auto current_path = _graphics.get_executable_path();
+    if (std::filesystem::exists(current_path+"stats")) {
+        std::ifstream ifs{current_path+"stats"};
 
         std::string time; std::getline(ifs, time);
         std::string levels; std::getline(ifs, levels);
@@ -63,26 +74,16 @@ void update_stats()
         if ((current_stats.level_count > level_count) ||
             (current_stats.level_count == level_count && current_stats.total_time < total_time)) {
             new_best = true;
-            std::ofstream ofs{current_path/"stats"};
+            std::ofstream ofs{current_path+"stats"};
             ofs << std::fixed << std::setprecision(2) << current_stats.total_time
                 << '\n' << current_stats.level_count;
         }
     }
     else {
-        std::ofstream ofs{current_path/"stats"};
+        std::ofstream ofs{current_path+"stats"};
         ofs << std::fixed << std::setprecision(2) << current_stats.total_time
             << '\n' << current_stats.level_count;
     }
-}
-
-[[nodiscard]]
-Stats_Str read_stats()
-{
-    std::stringstream ss;
-    ss << "Total time - " << std::fixed << std::setprecision(2) << current_stats.total_time << "s";
-    return {ss.str(), "Levels beaten - "+std::to_string(current_stats.level_count)};
-}
-
 }
 
 Game::Game(Graphics& graphics, Input_Manager& input_manager)

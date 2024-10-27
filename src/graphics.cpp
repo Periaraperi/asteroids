@@ -1,5 +1,6 @@
 #include "graphics.hpp"
 
+#include <filesystem>
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
 
@@ -81,6 +82,10 @@ Graphics::Graphics(const Window_Settings& settings)
                              0.0f, static_cast<float>(900.0f),
                              -1.0f, 1.0f)}
 {
+    auto path = SDL_GetBasePath();
+    _executable_path = std::string{path};
+    SDL_free(path);
+
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         PERIA_LOG(SDL_GetError());
         std::exit(EXIT_FAILURE);
@@ -127,11 +132,11 @@ Graphics::Graphics(const Window_Settings& settings)
     GL_CALL(glEnable(GL_BLEND));
     GL_CALL(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
-    _triangle_shader = std::make_unique<Shader>("res/shaders/tri_vert.glsl", "res/shaders/tri_frag.glsl");
-    _circle_shader = std::make_unique<Shader>("res/shaders/circle_vert.glsl", "res/shaders/circle_frag.glsl");
-    _line_shader = std::make_unique<Shader>("res/shaders/line_vert.glsl", "res/shaders/line_frag.glsl");
-    _text_shader = std::make_unique<Shader>("res/shaders/text_vert.glsl", "res/shaders/text_frag.glsl");
-    _texture_shader = std::make_unique<Shader>("res/shaders/texture_vert.glsl", "res/shaders/texture_frag.glsl");
+    _triangle_shader = std::make_unique<Shader>(_executable_path+"res/shaders/tri_vert.glsl", _executable_path+"res/shaders/tri_frag.glsl");
+    _circle_shader = std::make_unique<Shader>(_executable_path+"res/shaders/circle_vert.glsl", _executable_path+"res/shaders/circle_frag.glsl");
+    _line_shader = std::make_unique<Shader>(_executable_path+"res/shaders/line_vert.glsl", _executable_path+"res/shaders/line_frag.glsl");
+    _text_shader = std::make_unique<Shader>(_executable_path+"res/shaders/text_vert.glsl", _executable_path+"res/shaders/text_frag.glsl");
+    _texture_shader = std::make_unique<Shader>(_executable_path+"res/shaders/texture_vert.glsl", _executable_path+"res/shaders/texture_frag.glsl");
 
     // 1600 900 is game world
     _fbo = std::make_unique<Frame_Buffer>(1600, 900, Frame_Buffer::Frame_Buffer_Type::REGULAR);
@@ -162,7 +167,7 @@ Graphics::Graphics(const Window_Settings& settings)
     _font_structure.resize(81);
     _text_vaos.resize(81);
     _text_vbos.resize(81);
-    load_font(_game_font_path.c_str(), 48); //load default 48 size font
+    load_font((_executable_path+_game_font_path).c_str(), 48); //load default 48 size font
 
     { // screen framebuffer
         _screen_vao = std::make_unique<Vertex_Array>();
@@ -527,7 +532,7 @@ void Graphics::draw_text(const std::string& text, glm::vec2 pos,
                          glm::vec3 color, int32_t font_size, float scale /* = 1.0f*/)
 {
     if (!_font_size_loaded[font_size]) {
-        load_font(_game_font_path.c_str(), font_size);
+        load_font((_executable_path+_game_font_path).c_str(), font_size);
     }
 
     for (const auto& c:text) {

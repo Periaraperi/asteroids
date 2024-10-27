@@ -66,6 +66,8 @@ private:
     void update_won_state();
     void update_paused_state();
 
+    void update_stats();
+
     void reset_state();
     void full_reset_on_dead_state();
 
