@@ -87,6 +87,19 @@ elseif (WIN32) # currently setup for MSVC compiler
         ${EXTERNAL_INCLUDE_DIR}/freetype/lib/freetype.lib)
 endif()
 
+# during build copy res folder
+set(BUILD_OUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build/debug)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(BUILD_OUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build/release)
+endif()
+
+add_custom_command(
+    TARGET asteroids POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_CURRENT_SOURCE_DIR}/res ${BUILD_OUT_DIR}/res
+)
+
+#install stuff
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR})
 install(TARGETS asteroids
         CONFIGURATIONS Release
