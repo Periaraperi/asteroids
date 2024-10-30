@@ -62,7 +62,7 @@ Texture::Texture(uint32_t width, uint32_t height, Texture_Type type)
         GL_CALL(glBindTexture(GL_TEXTURE_2D, 0)); // unbind
     }
     else if (_type == Texture_Type::MULTISAMPLE) {
-        GL_CALL(glad_glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA, width, height, GL_TRUE));
+        GL_CALL(glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA, width, height, GL_TRUE));
 
         GL_CALL(glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0)); // unbind
     }

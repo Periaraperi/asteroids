@@ -103,7 +103,7 @@ namespace peria {
             if (b.is_hovered(mx, h-my)) g.draw_rect(b.pos, b.dimensions, b.hovered_color);
             else                        g.draw_rect(b.pos, b.dimensions, b.color);
 
-            g.draw_text(b.text, {b.pos.x+20.0f, b.pos.y-25.0f}, {}, 0.5f);
+            g.draw_text(b.text, {b.pos.x+20.0f, b.pos.y-25.0f}, {}, 30);
         }
 
         for (const auto& p:poly_points) {

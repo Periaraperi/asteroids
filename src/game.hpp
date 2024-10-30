@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <vector>
+#include <array>
 
 #include "asteroid.hpp"
 #include "weapons.hpp"
