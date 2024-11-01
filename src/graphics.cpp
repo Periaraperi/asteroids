@@ -4,9 +4,6 @@
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <array>
@@ -21,8 +18,6 @@
 constexpr int MAX_TRIANGLE_COUNT = 4096*2; // this many triangles per batch
 constexpr int MAX_RECT_COUNT = 4096;
 constexpr int MAX_CIRCLE_COUNT = 4096;
-
-static FT_Library _ft;
 
 void Graphics::init_triangle_batch_data()
 {
