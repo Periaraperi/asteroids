@@ -8,6 +8,9 @@
 #include <glm/mat4x4.hpp>
 #include <glm/vec2.hpp>
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 #include "vertex_buffer.hpp"
 #include "framebuffer.hpp"
 
@@ -145,6 +148,7 @@ private:
 private:
     SDL_Window* _window;
     SDL_GLContext _context;
+    FT_Library _ft;
     Window_Settings _settings;
     std::string _executable_path;
 
