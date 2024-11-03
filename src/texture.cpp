@@ -6,7 +6,7 @@
 #include "peria_logger.hpp"
 
 Texture::Texture(uint32_t width, uint32_t height, const void* bitmap_buffer_data)
-    :_width{width}, _height{height}
+    :_width{width}, _height{height}, _type{Texture_Type::REGULAR}
 {
     PERIA_LOG("Glyph Texture Ctor()");
     GL_CALL(glGenTextures(1, &_tex));
@@ -23,7 +23,7 @@ Texture::Texture(uint32_t width, uint32_t height, const void* bitmap_buffer_data
 }
 
 Texture::Texture(uint32_t width, uint32_t height, int32_t internal_format, uint32_t format)
-    :_width{width}, _height{height}, _buffer{std::vector<uint8_t>(width*height)}
+	:_width{width}, _height{height}, _type{Texture_Type::REGULAR}, _buffer{std::vector<uint8_t>(width*height)}
 {
     PERIA_LOG("Arbitrary Texture Ctor()");
     GL_CALL(glGenTextures(1, &_tex));

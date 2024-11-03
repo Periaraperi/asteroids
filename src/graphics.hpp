@@ -125,7 +125,6 @@ public:
 
     void draw_circle(glm::vec2 center, float radius, glm::vec4 color);
 
-    // for debug now. TODO: implement with shaders
     void draw_line(glm::vec2 p1, glm::vec2 p2, glm::vec4 color);
 
     void draw_text(const std::string& text, glm::vec2 pos, glm::vec3 color, int32_t font_size, float scale=1.0f);
@@ -166,7 +165,7 @@ private:
 
     std::vector<Font_Atlas_Data> _font_atlases;
     std::array<bool, 81> _font_size_loaded{};
-    std::vector<std::array<Glyph, 5000>> _font_structure;
+    std::vector<std::array<Glyph, 128>> _font_structure;
 
     std::unique_ptr<Frame_Buffer> _fbo;
     std::unique_ptr<Frame_Buffer> _fbo_multisampled;
