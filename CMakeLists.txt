@@ -36,14 +36,8 @@ set(SRCS
     ${EXTERNAL_INCLUDE_DIR}/glad/src/glad.c
 )
 
-add_executable(asteroids ${SRCS})
-target_compile_features(asteroids PRIVATE cxx_std_20)
-
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    target_compile_definitions(asteroids PRIVATE PERIA_DEBUG)
-endif()
-
 if (UNIX) # we use GNU Compiler on linux
+    add_executable(asteroids ${SRCS})
     target_compile_options(asteroids PRIVATE -Wall -Wextra -Wpedantic -Wshadow)
 
     # SDL2 and Freetype must be installed on your linux distro
@@ -69,9 +63,14 @@ if (UNIX) # we use GNU Compiler on linux
     target_link_libraries(asteroids PRIVATE ${SDL2_LIBRARIES} ${FREETYPE_LIBRARIES})
 
 elseif (WIN32) # currently setup for MSVC compiler
-    # on windows link sdl2 and freetype from libs provided in external directory
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        add_executable(asteroids ${SRCS})
+    else ()
+        add_executable(asteroids WIN32 ${SRCS})
+    endif()
     target_compile_options(asteroids PRIVATE /W4) 
 
+    # on windows link sdl2 and freetype from libs provided in external directory
     target_include_directories(asteroids 
         PRIVATE 
         ${SRC_DIR}
@@ -87,12 +86,30 @@ elseif (WIN32) # currently setup for MSVC compiler
         ${EXTERNAL_INCLUDE_DIR}/freetype/lib/freetype.lib)
 endif()
 
-# during build copy res folder
-set(BUILD_OUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build/debug)
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    set(BUILD_OUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build/release)
+target_compile_features(asteroids PRIVATE cxx_std_20)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(asteroids PRIVATE PERIA_DEBUG)
 endif()
 
+# during build copy res folder
+if (UNIX)
+    set(BUILD_OUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build/debug)
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        set(BUILD_OUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build/release)
+    endif()
+elseif (WIN32) # when using MSVC with vs solutions output directory and structure is different. Just manually hack this.
+    set(BUILD_OUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build/debug/Debug)
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        set(BUILD_OUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build/release/Release)
+    endif()
+endif()
+
+
+add_custom_command(
+    TARGET asteroids POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_CURRENT_SOURCE_DIR}/external/sdl2/lib/x64/SDL2.dll ${BUILD_OUT_DIR}
+)
 add_custom_command(
     TARGET asteroids POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -105,3 +122,4 @@ install(TARGETS asteroids
         CONFIGURATIONS Release
         RUNTIME DESTINATION bin)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/res/ DESTINATION bin/res CONFIGURATIONS Release)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/external/sdl2/lib/x64/SDL2.dll DESTINATION bin CONFIGURATIONS Release)

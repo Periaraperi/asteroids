@@ -90,6 +90,12 @@ Graphics::Graphics(const Window_Settings& settings)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
+    {
+        SDL_version vs;
+        SDL_GetVersion(&vs);
+        PERIA_LOG("SDL Version: ", (int)vs.major, ".", (int)vs.minor, ".", (int)vs.patch);
+    }
+
     const auto& s = _settings;
     auto fullscreen_flag = s.fullscreen ? SDL_WINDOW_FULLSCREEN : 0;
     auto resizable_flag = s.resizable ? SDL_WINDOW_RESIZABLE : 0;
