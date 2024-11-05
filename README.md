@@ -16,13 +16,13 @@ Dependencies: SDL2, GLAD, GLM, Freetype2
 - project is setup and tested for MSVC compiler and Visual Studio
 - dependencies are provided in external folder
 - .\configure.bat -> .\build.bat --BuildType -> run executable in build folder 
-- to install: .\install.bat and run from bin folder
+- to install: run .\install.bat after build and run from bin folder
 
 ### Linux
 - project is setup and tested for GCC compiler
 - make sure that SDL2 development package is installed on your distribution
 - ./configure.sh -> ./build.sh --BuildType -> run executable in build directory
-- to install: ./install.sh and run from bin directory
+- to install: run ./install.sh after build and run from bin directory
 
 # ScreenShots
 ![](./1.png)
